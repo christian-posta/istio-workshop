@@ -88,7 +88,7 @@
 
 
 					<section>
-						<p>Kubernetes is a deployment platform; <br/>it does not fully address service communication</p>
+						<p>Kubernetes is a deployment platform; <br/>it does not address service communication</p>
 					</section>
 
 
@@ -299,13 +299,15 @@
 						<h3>Wait: what is Envoy?</h3>
 						<ul>
 							<li>service proxy</li>
-							<li>written in C++</li>
+							<li>written in C++, highly parallel, non-blocking</li>
 							<li>L3/4 network filter</li>
 							<li>out of the box L7 filters</li>
 							<li>HTTP 2, including gRPC</li>
-							<li>baked in service discvoery</li>
+							<li>baked in service discvoery/health checking</li>
 							<li>advanced load balancing</li>
 							<li>stats, metrics, tracing</li>
+							<li>dynamic configuration through xDS</li>
+
 						</ul>
 
 						<div>
@@ -316,6 +318,31 @@
 
 
 					<section>
+						<img src="images/thatsenvoy.png"/>
+					</section>
+
+
+					<section>
+						<h3>Envoy as edge proxy</h3>
+						<img src="images/envoyedge.png"/>
+					</section>
+
+
+					<section>
+						<h3>Envoy as shared proxy</h3>
+						<img src="images/envoyshared.png"/>
+					</section>
+
+
+
+					<section>
+						<h3>Envoy as sidecar proxy</h3>
+						<img src="images/envoysidecar.png"/>
+					</section>
+
+
+					<section>
+						<h3>sidecar proxy</h3>
 						<img src="images/envoyarch.png"/>
 					</section>
 
@@ -338,13 +365,468 @@
 								<a href="https://www.slideshare.net/datawire/lyfts-envoy-from-monolith-to-service-mesh-matt-klein-lyft/17">From Monolith to ServiceMesh - Matt Klein, Lyft</a> </small>
 						</div>
 					</section>
+
+
+					<section>
+						<p>let's get some hands on...</p>
+					</section>
 				</section>
+
+
 				<section>
 					<section>
 						<h3>Hands on with Envoy Proxy</h3>
 					</section>
-					<section>
 
+
+					<section>
+						<h3>Prerequisites for hands-on</h3>
+						<ul>
+							<li>docker cli/client</li>
+							<li>access to docker daemon</li>
+							<li>network connection to <a href="http://hub.docker.io">hub.docker.io</a></li>
+						</ul>
+						<small>I'm using <a href="https://github.com/kubernetes/minikube">minikube</a>/<a href="https://www.openshift.org/minishift/">minishift</a>. YMMV</small>
+					</section>
+
+
+					<section>
+						<h3>Pull some images</h3>
+						<blockquote>
+							docker pull envoyproxy/envoy
+						</blockquote>
+						<blockquote>
+							docker pull tutum/curl
+						</blockquote>
+						<blockquote>
+							docker pull citizenstig/httpbin
+						</blockquote>
+					</section>
+
+					<section data-markdown>
+						<script type="text/template">
+							### Start a simple service
+
+							```
+							$  docker run -it --name httpbin --rm citizenstig/httpbin
+							```
+
+							### Verify service works
+
+							```
+							$  docker run -it --link httpbin tutum/curl \
+							curl -X GET http://httpbin:8000/headers
+
+							{
+							  "headers": {
+							    "Accept": "*/*",
+							    "Host": "httpbin:8000",
+							    "User-Agent": "curl/7.35.0"
+							  }
+							}
+							```
+
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Checkout Envoy!
+
+							```
+							$  docker run -it envoyproxy/envoy envoy --help
+							```
+
+							### Try running
+
+							```
+							$  docker run -it envoyproxy/envoy envoy
+
+							[2017-11-29 23:37:44.748][1][info][main] source/server/server.cc:157]
+								initializing epoch 0 (hot restart version=9.200.16384.127)
+							[2017-11-29 23:37:44.749][1][critical][main] source/server/server.cc:71]
+								error initializing configuration '': unable to read file:
+
+
+							```
+
+							Damn! No config file!
+
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy config file
+							```
+							{
+							  "listeners": "tcp://0.0.0.0:15001",
+							  "filters": [ .... ],
+							  "admin": {
+							    ...
+							  },
+							  "cluster_manager": {
+							    "clusters": {
+							       "name": "foo_service",
+							       "type": "logical_dns",
+							       "lb_type": "round_robin",
+							       "hosts": [ ... ]
+							    }
+							  }
+							```
+
+							[See the Envoy docs for more detail](https://www.envoyproxy.io/docs/envoy/latest/intro/intro)
+						</script>
+					</section>
+
+
+					<section>
+						<h3>Our sample envoy config file</h3>
+						<a href="https://github.com/christian-posta/istio-workshop/blob/master/envoy/conf/simple.json" target="_blank">
+							https://github.com/christian-posta/istio-workshop/blob/master/envoy/conf/simple.json
+						</a>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Let's run with a configuration file
+
+							```
+							$  docker run -it --name proxy --link httpbin \
+							-v $(pwd)/envoy/conf/simple.json:/etc/simple.json \
+							envoyproxy/envoy envoy -c /etc/simple.json
+
+							[2017-11-30 14:05:03.047][1][info][main] source/server/server.cc:157]
+							  initializing epoch 0 (hot restart version=9.200.16384.127)
+							[2017-11-30 14:05:03.061][1][info][config]
+							  source/server/configuration_impl.cc:45] loading 1 listener(s)
+							[2017-11-30 14:05:03.070][1][info][config]
+							  source/server/configuration_impl.cc:83] loading tracing configuration
+							[2017-11-30 14:05:03.070][1][info][config]
+							  source/server/configuration_impl.cc:109] loading stats sink configuration
+							[2017-11-30 14:05:03.071][1][info][main] source/server/server.cc:348]
+							  starting main dispatch loop
+							[2017-11-30 14:05:03.075][1][info][upstream]
+							  source/common/upstream/cluster_manager_impl.cc:131] cm init: all clusters initialized
+							[2017-11-30 14:05:03.075][1][info][main]
+							  source/server/server.cc:332] all clusters initialized. initializing init manager
+							[2017-11-30 14:05:03.075][1][info][config]
+							  source/server/listener_manager_impl.cc:482] all dependencies initialized. starting workers
+							```
+						</script>
+					</section>
+
+
+					<section>
+						<p>now we have a sample service and an envoy proxy configured to forward requests to it</p>
+						<img src="images/envoy-httpbin.png"/>
+					</section>
+
+					<section data-markdown>
+						<script type="text/template">
+							### Let's curl the proxy
+
+							```
+							$  docker run -it --link proxy tutum/curl \
+							curl  -X GET http://proxy:15001/headers
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Response
+
+							note the [X-Request-Id](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_conn_man/headers.html#config-http-conn-man-headers-x-request-id)
+
+							```
+							{
+							  "headers": {
+							    "Accept": "*/*",
+							    "Content-Length": "0",
+							    "Host": "httpbin",
+							    "User-Agent": "curl/7.35.0",
+							    "X-Request-Id": "ef264545-4ba6-4865-8172-f9cadcb74e31"
+							  }
+							}
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Admin stats
+
+							Let's curl the admin stats API
+
+							```
+							$  docker run -it --link proxy tutum/curl \
+							curl -X GET http://proxy:15000/stats
+							```
+
+
+
+						</script>
+					</section>
+
+					<section data-markdown>
+						<script type="text/template">
+							### Admin stats
+
+							Wow, that's a lot of good info! Let's trim it down:
+
+							```
+							$  docker run -it --link proxy tutum/curl \
+							curl -X GET http://proxy:15000/stats | grep retry
+
+							cluster.httpbin_service.retry_or_shadow_abandoned: 0
+							cluster.httpbin_service.upstream_rq_retry: 0
+							cluster.httpbin_service.upstream_rq_retry_overflow: 0
+							cluster.httpbin_service.upstream_rq_retry_success: 0
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Retries
+
+							Let's add some retry semantics to `httpbin_service`
+
+							```
+							"routes": [
+							  {
+							    "timeout_ms": 0,
+							    "prefix": "/",
+							    "auto_host_rewrite": true,
+							    "cluster": "httpbin_service",
+							    "retry_policy": {
+							        "retry_on": "5xx",
+							        "num_retries": 3
+							    }
+							}
+							```
+						</script>
+					</section>
+
+
+					<section>
+						<section data-markdown>
+							<script type="text/template">
+								### Refresh with new config
+
+								Restart our envoy proxy:
+
+								```
+								$  docker rm -f proxy
+								$  docker run -it --name proxy --link httpbin \
+								-v $(pwd)/envoy/conf/simple.json:/etc/simple.json \
+								envoyproxy/envoy envoy -c /etc/simple.json
+								```
+							</script>
+						</section>
+					</section>
+
+
+					<section>
+						<section data-markdown>
+							<script type="text/template">
+								### Call an endpoint in error
+
+								Curl the proxy to generate a `500`
+
+								```
+								$  docker run -it --link proxy tutum/curl \
+								curl -X GET http://proxy:15001/status/500
+								```
+
+								Review the envoy admin stats:
+
+								```
+								$  docker run -it --link proxy tutum/curl \
+								curl -X GET http://proxy:15000/stats | grep retry
+
+								cluster.httpbin_service.retry.upstream_rq_500: 3
+								cluster.httpbin_service.retry.upstream_rq_5xx: 3
+								cluster.httpbin_service.retry_or_shadow_abandoned: 0
+								cluster.httpbin_service.upstream_rq_retry: 3
+								cluster.httpbin_service.upstream_rq_retry_overflow: 0
+								cluster.httpbin_service.upstream_rq_retry_success: 0
+								```
+							</script>
+						</section>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy config: circuit breaking
+
+							```
+							"cluster_manager": {
+							  "clusters": [
+								{
+								  "name": "httpbin_service",
+								  "hosts": [
+									{
+									  "url": "tcp://httpbin.org:80"
+									}
+								  ],
+								  "circuit_breakers": {
+									"default": {
+									  "max_connections": 1,
+									  "max_pending_requests": 1,
+									  "max_retries": 3
+									}
+								  },
+
+								 ...
+
+								 }
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy config: outlier detection
+
+							```
+							{
+							  "name": "httpbin_service",
+							  ...
+							  "circuit_breakers": {
+							    "default": {
+							      "max_connections": 1,
+							      "max_pending_requests": 1,
+							      "max_retries": 3
+							    }
+							  },
+							  "outlier_detection" : {
+							    "consecutive_5xx": 5,
+							    "max_ejection_percent": 100,
+							    "interval_ms": 3000
+							  }
+							}
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy config: load balancing
+
+							`lb_type`:
+
+							* round_robin
+							* least_request
+							* ring_hash
+							* random
+							* original_dst_lb
+
+							```
+							{
+							  "name": "httpbin_service",
+							    ...
+							  "lb_type": "...",
+							  "ring_hash_lb_config": { ... }
+
+							}
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy config: traffic shifting
+
+							```
+							"routes": [
+							  {
+							    "prefix": "/",
+							    "cluster": "helloworld_v1",
+							    "runtime": {
+							      "key": "routing.traffic_shift.helloworld",
+							      "default": 50
+							     }
+							    },
+							  {
+							    "prefix": "/",
+							    "cluster": "helloworld_v2",
+							  }
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy config: traffic shifting
+
+							```
+							"weighted_clusters": {
+							  "runtime_key_prefix" : "routing.traffic_split.helloworld",
+							  "clusters" : [
+							    { "name" : "helloworld_v1", "weight" : 33 },
+							    { "name" : "helloworld_v2", "weight" : 33 },
+							    { "name" : "helloworld_v3", "weight" : 34 }
+							  ]
+							```
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy resource consumption
+
+							```
+							$  docker top proxy
+
+							PID      USER         COMMAND
+							4997     root         envoy -c /etc/simple.json
+
+							$  docker stats proxy
+
+							CONTAINER    CPU %    MEM USAGE / LIMIT       MEM %
+							proxy        0.59%    11.16 MiB / 3.858 GiB   0.28%
+
+							```
+
+
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### Envoy Discovery (XDS)
+
+							* Listener discovery service (LDS)
+							* v1 Route discovery service (RDS)
+							* Cluster discovery service (CDS)
+							* Service discovery service (SDS)
+
+
+						</script>
+					</section>
+
+
+					<section data-markdown>
+						<script type="text/template">
+							### See Envoy docs for more configuration
+
+							[https://www.envoyproxy.io/docs/envoy/latest/intro/intro](https://www.envoyproxy.io/docs/envoy/latest/intro/intro)
+						</script>
 					</section>
 				</section>
 

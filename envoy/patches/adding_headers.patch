@@ -1,0 +1,18 @@
+Index: envoy/conf/simple.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- envoy/conf/simple.json	(date 1511988945000)
++++ envoy/conf/simple.json	(revision )
+@@ -28,7 +28,8 @@
+                       "auto_host_rewrite": true,
+                       "cluster": "httpbin_service"
+                     }
+-                  ]
++                  ],
++                  "request_headers_to_add": [{"key":  "x-foo-bar", "value": "cheese"}]
+                 }
+               ]
+             },
+\ No newline at end of file
