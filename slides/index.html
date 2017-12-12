@@ -59,14 +59,14 @@
 					</ul>
 				</section>
 
-        <section id="agenda">
+        <section>
           <h2>Source Code Is Here</h2>
           <a href="https://github.com/christian-posta/istio-workshop">https://github.com/christian-posta/istio-workshop</a>
         </section>
 
 				<!--How did we get here------------------------------------------------------------------>
 				<!--<section>-->
-					<section>
+					<section id="how-we-got-here">
 						<h3>How did we get here</h3>
 
 						<aside class="notes">
@@ -287,7 +287,7 @@
 
 				<!--Meet Envoy Proxy------------------------------------------------------------------>
 				<!--<section>-->
-					<section>
+					<section id="meet-envoy">
 						<h3>Meet Envoy Proxy</h3>
 						<div align="center">
 							<a href="https://www.envoyproxy.io">https://www.envoyproxy.io</a>
@@ -374,7 +374,7 @@
 
 				<!--Hands on with Envoy Proxy------------------------------------------------------------------>
 				<!--<section>-->
-					<section>
+					<section id="hands-on-envoy">
 						<h3>Let's get Hands on </h3>
 						<div align="center">
 							<a href="https://www.envoyproxy.io">https://www.envoyproxy.io</a>
@@ -928,7 +928,7 @@
 
 				<!--Meet Istio service mesh------------------------------------------------------------------>
 				<!--<section>-->
-					<section>
+					<section id="meet-istio">
 						<h3>Meet Istio Service Mesh</h3>
 						<div align="center">
 							<a href="https://istio.io">https://istio.io</a>
@@ -937,15 +937,93 @@
 							<img src="images/istiologo.png"/>
 						</div>
 					</section>
-					<section>
-						<h3>More to come here.....</h3>
+
+
+          <section>
+						<h3>How do we configure a fleet of Envoys?</h3>
+            <p>Envoy configuration can be verbose and error prone without automation. We need a
+            concise model/semantics to manipulate a cluster.</p>
 					</section>
+
+
+          <section>
+            <h3>We need cluster semantics</h3>
+            <p>Meet <a href="http://istio.io">Istio.io</a> - a control plane for service proxies.</p>
+          </section>
+
+
+        <section>
+          <h3>We need cluster semantics</h3>
+          <img src="images/istiooverview.png"/>
+        </section>
+
+        <section>
+          <h3>Cluster semantics?</h3>
+          <ul>
+            <li>Fleet configuration</li>
+            <li>Routing control</li>
+            <li>Observability</li>
+            <li>Fault inject/chaos testing</li>
+            <li>Cluster resilience</li>
+            <li>Strong security options</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>Messages not bytes </h3>
+          <p>Istio gives us fine grained control over requests in our application network.</p>
+        </section>
+
+
+        <section>
+          <h3>Istio Edge Ingress</h3>
+          <img src="images/istioingress.png"/>
+        </section>
+
+        <section>
+          <h3>Istio control plane</h3>
+          <img src="images/istiocontrolplane.png"/>
+        </section>
+
+
+
+
+        <section>
+          <h3>Istio Pilot</h3>
+          <img src="images/istiopilot.png"/>
+        </section>
+
+
+        <section>
+          <h3>Istio Mixer</h3>
+          <img src="images/istiomixer.png"/>
+        </section>
+
+        <section>
+          <h3>Istio Observability</h3>
+          <img src="images/istioobserve.png"/>
+        </section>
+
+
+        <section>
+          <h3>Istio Observability</h3>
+          <img src="images/istioca.png"/>
+        </section>
+
+
+        <section>
+          <h3>Istio Mutual TLS</h3>
+          <img src="images/istiomtls.png"/>
+        </section>
+
+
+
 				<!--</section>-->
 
 
 				<!--Hands on Istio service mesh------------------------------------------------------------------>
 				<!--<section>-->
-					<section>
+					<section id="hands-on-istio">
 						<h3>Let's get hands on</h3>
 						<div align="center">
 							<a href="https://istio.io">https://istio.io</a>
@@ -969,28 +1047,35 @@
 				<section>
 					<h3>Additional notes</h3>
 					<ul>
-						<li>NOTE: use `oc` instead of `kubectl`<br/> when on OpenShift</li>
-						<li>Istio components will all live in istio-system namespace; <br/>
-						You can add istio-samples for your components/samples</li>
+						<li>NOTE: use  <i>oc</i> instead of <i>kubectl</i><br/> when on OpenShift</li>
+						<li>Istio components will all live in <code>istio-system</code> namespace</li>
+						<li>You can add <code>istio-samples</code> for your components/samples</li>
 					</ul>
 				</section>
 
-					<section data-markdown>
-						<script type="text/template">
-							### Install Istio
+        <section data-markdown>
+          <script type="text/template">
+            ### Install istio
 
-							[Installation Instructions from istio.io](https://istio.io/docs/setup/kubernetes/quick-start.html)
+            Custom download script (needed until `0.3.0` is stable) located at `$BASE/istio/installation`:
 
-							```
-							$  cd istio/install
-							(istio/install)$  ./downloadIstio.sh
-							(istio/install)$  ## kubectl apply -f istio-0.3.0/install/kubernetes/istio.yaml
-							```
+            ```
+            $  cd istio/install
+            (istio/install)$  ./downloadIstio.sh
+            (istio/install)$  ## kubectl apply -f istio-0.3.0/install/kubernetes/istio.yaml
+            ```
+            Don't actually do the installation yet. We will take a piece-by-piece approach.
 
-							... do download istio, but ... let's take a deep dive into the installation
+          </script>
+        </section>
 
-						</script>
-					</section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Official istio download
+            You can also take a look at the official<br/> [installation instructions from istio.io](https://istio.io/docs/setup/kubernetes/quick-start.html)
+          </script>
+        </section>
 
 
 
@@ -1022,7 +1107,7 @@
 							Kubernetes:
 
 							```
-							(istio/install/components)$  kubectl apply -f istio-namespace.yaml
+							$  kubectl apply -f istio-namespace.yaml
 							```
 
 							OpenShift:
@@ -1044,7 +1129,7 @@
 							everything we're installing:
 
 							```
-							(istio/install/components)$  cat istio-pilot.yaml
+							$  cat istio-pilot.yaml
 							```
 
 						</script>
@@ -1318,7 +1403,7 @@
 							Let's install it...
 
 							```
-							(istio/install/components)$  kubectl apply -f istio-pilot.yaml
+							$  kubectl apply -f istio-pilot.yaml
 
 							clusterrole "istio-pilot-istio-system" configured
 							clusterrole "istio-initializer-istio-system" configured
@@ -1358,7 +1443,7 @@
 							### Interact with pilot: xDS
 
 							```
-							kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
+							$  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
 							-n istio-system --command \
 							-- curl -vvvv 'http://istio-pilot:15003/v1/registration'
 							```
@@ -1372,7 +1457,7 @@
 						<script type="text/template">
 							### Pilot and CRD
 
-							Show a diagram of istio controller and CRD
+							![Pilot diagram](/images/pilotcrd.png)
 
 
 						</script>
@@ -1386,7 +1471,8 @@
 							Navigate to `$BASE/istio/install/istio-0.3.0/samples/httpbin`
 
 							```
-							(istio/install/istio-0.3.0/samples/httpbin)$  cat httpbin.yaml
+              $  cd istio/install/istio-0.3.0/samples/httpbin
+							$  cat httpbin.yaml
 
 							apiVersion: v1
 							kind: Service
@@ -1429,8 +1515,7 @@
 							### Let's decorate our service with sidecar
 
 							```
-							(istio/install/istio-0.3.0/samples/httpbin)$
-							../../bin/istioctl kube-inject -f httpbin.yaml
+							$	 ../../bin/istioctl kube-inject -f httpbin.yaml
 
 							apiVersion: extensions/v1beta1
 							kind: Deployment
@@ -1563,8 +1648,7 @@
 							as we just have pilot deployed.
 
 							```
-							(istio/install/istio-0.3.0/samples/httpbin)$
-							../../bin/istioctl kube-inject -f httpbin.yaml \
+							$  ../../bin/istioctl kube-inject -f httpbin.yaml \
 							| sed -E  '/mixer|stats/d' \
 							| kubectl apply -f -
 							```
@@ -1573,7 +1657,7 @@
 							namespace/project for the proxy (we'll come back to that):
 
 							```
-							oc adm policy add-scc-to-user privileged -z default -n <namespace-name>
+							$  oc adm policy add-scc-to-user privileged -z default -n <namespace-name>
 							```
 
 						</script>
@@ -1629,7 +1713,7 @@
 
 							```
 
-                            Note all of the new headers!
+              Note all of the new headers!
 
 
 						</script>
@@ -1959,7 +2043,7 @@
 
                       </script>
                       </section>
-                      <section data-markdown>
+                      <section data-markdown id="istio-data-model">
                       	<script type="text/template">
 													### Putting it all together
 													
@@ -2183,7 +2267,7 @@
           </script>
         </section>
 
-        <section data-markdown>
+        <section data-markdown id="additional-resources">
           <script type="text/template">
             ### Additional resources
 
