@@ -55,10 +55,7 @@
 						<li>Hands on with Envoy Proxy</li>
 						<li>Meet Istio Service Mesh</li>
 						<li>Hands on with Istio Service Mesh</li>
-						<li>Resilience</li>
-						<li>Routing</li>
-						<li>Observability</li>
-						<li>Chaos Testing</li>
+						<li>Additional resources</li>
 					</ul>
 				</section>
 
@@ -389,6 +386,7 @@
 							<li>docker cli/client</li>
 							<li>access to docker daemon</li>
 							<li>ability to mount files into a running docker container (from your workspace/host machine)</li>
+							<li>access to multiple terminals (screen, tmux, iterm, etc)</li>
 							<li>network connection to <a href="http://hub.docker.io">hub.docker.io</a></li>
 						</ul>
 						<small>I'm using <a href="https://github.com/kubernetes/minikube">minikube</a>/<a href="https://www.openshift.org/minishift/">minishift</a>. YMMV</small>
@@ -956,12 +954,21 @@
 					<h3>Prerequisites for hands-on</h3>
 					<ul>
 						<li>kubectl/oc cli client</li>
-						<li>Kubernetes 1.7.5 or greater; OpenShift 3.7 or greater</li>
+						<li>Kubernetes 1.7.5 or greater; <br/>OpenShift 3.7 or greater</li>
 						<li>admin privileges for cluster</li>
+						<li>access to multiple terminals (screen, tmux, iterm, etc)</li>
 					</ul>
 					<small>I'm using <a href="https://github.com/kubernetes/minikube">minikube</a>/<a href="https://www.openshift.org/minishift/">minishift</a>. YMMV</small>
 				</section>
 
+				<section>
+					<h3>Additional notes</h3>
+					<ul>
+						<li>NOTE: use `oc` instead of `kubectl`<br/> when on OpenShift</li>
+						<li>Istio components will all live in istio-system namespace; <br/>
+						You can add istio-samples for your components/samples</li>
+					</ul>
+				</section>
 
 					<section data-markdown>
 						<script type="text/template">
@@ -1688,7 +1695,7 @@
 
                     <section data-markdown>
                         <script type="text/template">
-                            ### Let's add an ingress controller
+                            ### Istio Ingress
 
                             Navigate to `$BASE/istio/install/components`. We'll install the ingress
                             but remove the link to mixer since we still don't have that.
@@ -1769,7 +1776,7 @@
                       $ kubectl get ing
 
                       NAME              HOSTS     ADDRESS         PORTS     AGE
-                      httpbin-gateway   *         172.29.200.58   80        11m
+                      gateway   *         172.29.200.58   80        11m
                       ```
                     </script>
                   </section>
@@ -1814,60 +1821,375 @@
 
                   <section data-markdown>
                     <script type="text/template">
-                      ### What does the envoy route for ingress look like?
+                      ### What does the envoy route config for ingress look like?
                       This is an exercise for the user :) Hint: log into the ingress and query the admin
                       REST interface at `http://localhost:15000` :)
                     </script>
                   </section>
 
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Istio Mixer
 
-				<!--</section>-->
+                      Navigate to `$BASE/istio/install`. We will install some additional
+                      components to go along with mixer.
+
+                      ```
+                      $  cd istio/install
+                      $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/zipkin.yaml
+                      $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/prometheus.yaml
+                      $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/grafana.yaml
+
+                      ```
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Istio Mixer
+
+                      Take a look at the mixer yaml and then install it:
+
+                      ```
+                      $  cat components/istio-mixer.yaml
+                      $  kubectl apply -f components/istio-mixer.yaml
+
+                      ```
+
+                      In previous steps, we commented out the mixer config (from pilot and ingress).
+                      Let's re-install those:
+
+                      ```
+                      $  kubectl apply -f components/istio-pilot.yaml
+                      $  kubectl apply -f components/istio-ingress.yaml
+                      ```
+                    </script>
+                  </section>
+
+                  <section data-markdown>
+                    <script type="text/template">
+                      ### Istio Mixer
+
+                      To verify the components were installed correctly,
+                      get the publicly accessible URLs using the `$BASE/istio/bin/get-urls.sh` script.
+                      If using openshift, just create routes for these services like:
+
+                      ```
+                      $  oc expose svc/zipkin
+                      $  oc expose svc/grafana
+
+                      $  oc get route
+
+                      NAME      HOST/PORT                                   PATH  SERVICES   PORT
+                      grafana   grafana-istio-system.192.168.64.34.nip.io         grafana    http
+                      zipkin    zipkin-istio-system.192.168.64.34.nip.io          zipkin     http
+
+                      ```
+
+                      Navigate to one of these openshift routes and verify installation.
+                    </script>
+                    </section>
 
 
+                    <section data-markdown>
+                      <script type="text/template">
+                        ### Istio Mixer
 
-				<!--Resilience------------------------------------------------------------------>
-				<section>
-					<section>
-						<h3>Resilience</h3>
-					</section>
-					<section>
-						<h3>dropping in here</h3>
-					</section>
+                        Envoy proxies call Mixer to Check and Report. Let's open up some mixer ports
+                        to get an idea what calls its seeing:
+
+                        ```
+                        $  kubectl  port-forward -n istio-system istio-mixer-333075648-rrr2w  9093
+
+                        ```
+
+                        Navigate to [http://localhost:9093/metrics](http://localhost:9093/metrics)
+                        <br/>
+                        Do a search for `grpc_server_handled_total`
+
+                      </script>
+                  </section>
+
+                    <section data-markdown>
+                      <script type="text/template">
+                        ### Exercise Mixer
+
+                        Let's call the httpbin service (through ingress or openshift route).
+                        Then navigate back to the Mixer stats page and search for `grpc_server_handled_total`
+                        Should see something similar to this:
+
+                        ```
+                        # HELP grpc_server_handled_total Total number of RPCs completed
+                        # on the server, regardless of success or failure.
+                        # TYPE grpc_server_handled_total counter
+                        grpc_server_handled_total{grpc_code="Internal",grpc_method="Report",grpc_service="istio.mixer.v1.Mixer",grpc_type="unary"} 5
+                        grpc_server_handled_total{grpc_code="OK",grpc_method="Check",grpc_service="istio.mixer.v1.Mixer",grpc_type="unary"} 49
+
+                        ```
+
+                      </script>
+                    </section>
+
+                    <section data-markdown>
+                      <script type="text/template">
+                        ### Exercise Mixer
+
+                        Let's imitate a mixer call and try send a report.
+                        Navigate to `$BASE/istio/bin/<platform>`
+
+                        First open the Mixer grpc port:
+                        ```
+                        $  kubectl  port-forward -n istio-system istio-mixer-333075648-rrr2w  9091
+                        ```
+
+                        Let's use the `mixc` cli to send a report:
+                        ```
+                        $  ./mixc report -a target.service=httpbin.istio-samples.svc.cluster.local \
+                        --timestamp_attributes request.time=0001-01-01T00:00:00Z
+
+                        Report RPC returned OK
+                        ```
+
+                        Now go search Mixer stats page again. Should see our new query. 
+
+                      </script>
+                      </section>
+                      <section data-markdown>
+                      	<script type="text/template">
+													### Putting it all together
+													
+													Istio high-level model:
+
+													* Route rules
+													* Destination policy
+													* Egress rules
+													* Mixer rules
+												</script>
+												<!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+                      </section>
+        <section data-markdown>
+          <script type="text/template">
+            ### Deploy bookinfo
+
+            Navigate to $BASE/istio and run the following:
+
+            ```
+            $  istioctl kube-inject -f bookinfo/bookinfo.yaml | kubectl apply -f -
+            ```
+
+            If on OpenShift, you'll need to allow some relaxed permissions because some of the services
+            write logs to `/opt/*`
+
+            ```
+            $  oc adm policy add-scc-to-user anyuid -z default -n istio-samples
+            ```
+
+            You can then use Kubernetes ingress or OpenShift routes to expose the `productpage` svc:
+
+            ```
+            $  ./bin/get-ingress-url.sh
+            ```
+
+          </script>
+          <!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+        </section>
+
+        <section data-markdown>
+					<script type="text/template">
+						### Route rules
+
+						![service model](/images/istio-svc-model.png)
+          </script>
+					<!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
 				</section>
 
+        <section data-markdown>
+          <script type="text/template">
+            ### Force all traffic to v1
+
+            ```
+            apiVersion: config.istio.io/v1alpha2
+            kind: RouteRule
+            metadata:
+              name: productpage-default
+            spec:
+            ## Used by services inside the Kubernetes cluster
+              destination:
+                name: productpage
+              precedence: 1
+              route:
+              - labels:
+                  version: v1
+            ```
+
+          </script>
+          <!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Force all traffic to v1
 
 
-				<!--Routing------------------------------------------------------------------>
-				<section>
-					<section>
-						<h3>Routing</h3>
-					</section>
-					<section>
-						<h3>dropping in here</h3>
-					</section>
-				</section>
+            ```
+            $  istioctl create -f bookinfo/route-rules/route-rule-all-v1.yaml -n istio-samples
+
+            Created config route-rule//productpage-default at revision 420820
+            Created config route-rule//reviews-default at revision 420821
+            Created config route-rule//ratings-default at revision 420822
+            Created config route-rule//details-default at revision 420823
+            ```
+
+            Note the `istioctl` command is not namespace aware -- need to be explicit!
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Check routing rules:
+
+            ```
+            $  # this gets all route rules across namespaces
+            $  istioctl get routerules
+            $  # can use plain kubectl also (namespace specific)
+            $  kubectl get routerules
+
+            ```
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Deploy reviews v2
+
+            ```
+            $  istioctl kube-inject -f bookinfo/reviews-deployment-v2.yaml \
+            | kubectl apply -f -
+
+            deployment "reviews-v2" created
+
+            ```
+
+            Try hitting the reviews API (substitute for your ingress endpoint or OpenShift Route)
+
+            ```
+            $  curl 192.168.64.34:31250/api/v1/products/0/reviews
+            {
+              "id": "0",
+              "reviews": [
+                {
+                  "reviewer": "Reviewer1",
+                  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"
+                },
+                {
+                  "reviewer": "Reviewer2",
+                  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare."
+                }
+              ]
+            }
+            ```
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Dark launch reviews v2
+
+            ```
+            $  istioctl create -n istio-samples -f \
+            bookinfo/route-rules/route-rule-reviews-dark-v2.yaml
+
+            Updated config route-rule/istio-samples/reviews-test-v2 to revision 424459
+
+            ```
+
+            Try hitting the reviews API and pass in a cookie param:
+
+            ```
+            $  curl --cookie "user=jason" 192.168.64.34:31250/api/v1/products/0/reviews
+            {
+              "id": "0",
+              "reviews": [
+                {
+                  "rating": { "color": "black", "stars": 5 },
+                  "reviewer": "Reviewer1",
+                  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"
+                },
+                {
+                  "rating": { "color": "black", "stars": 4 },
+                  "reviewer": "Reviewer2",
+                  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare."
+                }
+              ]
+            }
+            ```
+
+          </script>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            ### Where do these routing rules live?
+
+            In Pilot RDS services. Log into the `productpage` pod's proxy and
+            let's take a look at the routes;
 
 
-				<!--Observability------------------------------------------------------------------>
-				<section>
-					<section>
-						<h3>Observability</h3>
-					</section>
-					<section>
-						<h3>dropping in here</h3>
-					</section>
-				</section>
+            ```
+            $  kubectl exec -it productpage-v1-3581918468-b9lws -c istio-proxy sh
+            $>  curl localhost:15000/routes
+
+            ```
+            In the response we should see an entry for:
+
+            ```
+            {"name":"reviews.istio-samples.svc.cluster.local|http","domains":["reviews:9080","reviews","reviews
+            .istio-samples:9080","reviews.istio-samples","reviews.istio-samples.svc:9080","reviews.istio-samples.svc",
+            "reviews.istio-samples.svc.cluster:9080","reviews.istio-samples.svc.cluster","reviews.istio-samples.svc
+            .cluster.local:9080","reviews.istio-samples.svc.cluster.local","172.30.160.190:9080","172.30.160.190"],
+            "routes":[{"match":{"prefix":"/","headers":[{"name":"cookie","value":"^(.*?;)?(user=jason)(;.*)?$",
+            "regex":true}]},"route":{"cluster":"out.reviews.istio-samples.svc.cluster.local|http|version=v2",
+            "timeout":"0s"},"decorator":{"operation":"reviews-test-v2"}},{"match":
+            {"prefix":"/"},"route":{"cluster":"out.reviews.istio-samples.svc.cluster.local|http|version=v1",
+            "timeout":"0s"},"decorator":{"operation":"reviews-default"}
+            ```
+
+            Note the routing based on Cookie params.
 
 
-				<!--Chaos testing------------------------------------------------------------------>
-				<section>
-					<section>
-						<h3>Chaos Testing</h3>
-					</section>
-					<section>
-						<h3>dropping in here</h3>
-					</section>
-				</section>
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Where do we go from here?
+
+            This workshop is a work in progress. [Please follow along for updates](http://twitter.com/christianposta).
+            Next topics to add:
+
+            * More complicated routing
+            * Chaos testing
+            * Observability/tracing
+            * Mixer adapters/plugins
+
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Additional resources
+
+            * [Istio on OpenShift via Veer Muchandi](https://github.com/VeerMuchandi/istio-on-openshift)
+            * [Istio and Kubernetes via Zach Butcher, et. al.](https://github.com/ZackButcher/istio-workshop)
+            * [Bookinfo from http://istio.io](https://istio.io/docs/tasks/traffic-management/request-routing.html)
+
+          </script>
+        </section>
+
+
 
 
 			</div>
