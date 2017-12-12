@@ -26,11 +26,7 @@
                       "timeout_ms": 0,
                       "prefix": "/",
                       "auto_host_rewrite": true,
-                      "cluster": "httpbin_service",
-                      "retry_policy": {
-                        "retry_on": "5xx",
-                        "num_retries": 3
-                      }
+                      "cluster": "httpbin_service"
                     }
                   ]
                 }
