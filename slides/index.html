@@ -1767,7 +1767,8 @@
 
                             Let's ask the local envoy proxy what it knows about its
                             listeners, routes, clusters, and info (remember it got :
-                            this from xDS from Pilot?)
+                            this from xDS from Pilot?). Note this requires using the `proxy_debug`
+                            docker image for the service proxy.
 
                             ```
                             (proxy)$  curl localhost:15000
