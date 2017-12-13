@@ -2234,15 +2234,56 @@
             In the response we should see an entry for:
 
             ```
-            {"name":"reviews.istio-samples.svc.cluster.local|http","domains":["reviews:9080","reviews","reviews
-            .istio-samples:9080","reviews.istio-samples","reviews.istio-samples.svc:9080","reviews.istio-samples.svc",
-            "reviews.istio-samples.svc.cluster:9080","reviews.istio-samples.svc.cluster","reviews.istio-samples.svc
-            .cluster.local:9080","reviews.istio-samples.svc.cluster.local","172.30.160.190:9080","172.30.160.190"],
-            "routes":[{"match":{"prefix":"/","headers":[{"name":"cookie","value":"^(.*?;)?(user=jason)(;.*)?$",
-            "regex":true}]},"route":{"cluster":"out.reviews.istio-samples.svc.cluster.local|http|version=v2",
-            "timeout":"0s"},"decorator":{"operation":"reviews-test-v2"}},{"match":
-            {"prefix":"/"},"route":{"cluster":"out.reviews.istio-samples.svc.cluster.local|http|version=v1",
-            "timeout":"0s"},"decorator":{"operation":"reviews-default"}}]}
+            {
+              "name": "reviews.istio-samples.svc.cluster.local|http",
+              "domains": [
+                "reviews:9080",
+                "reviews",
+                "reviews.istio-samples:9080",
+                "reviews.istio-samples",
+                "reviews.istio-samples.svc:9080",
+                "reviews.istio-samples.svc",
+                "reviews.istio-samples.svc.cluster:9080",
+                "reviews.istio-samples.svc.cluster",
+                "reviews.istio-samples.svc.cluster.local:9080",
+                "reviews.istio-samples.svc.cluster.local",
+                "172.30.160.190:9080",
+                "172.30.160.190"
+              ],
+              "routes": [
+                {
+                  "match": {
+                    "prefix": "/",
+                    "headers": [
+                      {
+                        "name": "cookie",
+                        "value": "^(.*?;)?(user=jason)(;.*)?$",
+                        "regex": true
+                      }
+                    ]
+                  },
+                  "route": {
+                    "cluster": "out.reviews.istio-samples.svc.cluster.local|http|version=v2",
+                    "timeout": "0s"
+                  },
+                  "decorator": {
+                    "operation": "reviews-test-v2"
+                  }
+                },
+                {
+                  "match": {
+                    "prefix": "/"
+                  },
+                  "route": {
+                    "cluster": "out.reviews.istio-samples.svc.cluster.local|http|version=v1",
+                    "timeout": "0s"
+                  },
+                  "decorator": {
+                    "operation": "reviews-default"
+                  }
+                }
+              ]
+            }
             ```
 
             Note the routing based on Cookie params.
