@@ -1,0 +1,15 @@
+apiVersion: config.istio.io/v1beta1
+kind: DestinationPolicy
+metadata:
+  name: reviews-least-conn-cb
+spec:
+  destination:
+    name: reviews
+    namespace: istio-samples
+  loadBalancing:
+    name: LEAST_CONN
+  circuitBreaker:
+    simpleCb:
+      maxConnections: 5
+      sleepWindow: 5m
+      httpDetectionInterval: 1m
