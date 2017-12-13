@@ -5,7 +5,6 @@ metadata:
 spec:
   destination:
     name: reviews
-    namespace: istio-samples
   loadBalancing:
     name: LEAST_CONN
   circuitBreaker:
