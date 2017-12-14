@@ -1639,6 +1639,27 @@
 						</script>
 					</section>
 
+					<section data-markdown>
+						<script type="text/template">
+							### Creating our samples namespace
+
+							Let's create the namespace used to deploy our sample applications:
+
+							```
+							$ kubectl create namespace istio-samples
+							```
+
+							Note, on OpenShift, you'll need to enable permissions in your
+							namespace/project for the proxy (we'll come back to that):
+
+							```
+							$  oc new-project istio-samples
+							$  oc adm policy add-scc-to-user privileged -z default -n istio-samples
+							```
+
+						</script>
+					</section>
+
 
 					<section data-markdown>
 						<script type="text/template">
@@ -1651,13 +1672,6 @@
 							$  ../../bin/istioctl kube-inject -f httpbin.yaml \
 							| sed -E  '/mixer|stats/d' \
 							| kubectl apply -f -
-							```
-
-							Note, on OpenShift, you'll need to enable permissions in your
-							namespace/project for the proxy (we'll come back to that):
-
-							```
-							$  oc adm policy add-scc-to-user privileged -z default -n <namespace-name>
 							```
 
 						</script>
