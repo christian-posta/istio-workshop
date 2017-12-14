@@ -422,7 +422,7 @@
 							### Verify service works
 
 							```
-							$  docker run -it --link httpbin tutum/curl \
+							$  docker run -it --rm --link httpbin tutum/curl \
 							curl -X GET http://httpbin:8000/headers
 
 							{
@@ -443,13 +443,13 @@
 							### Checkout Envoy!
 
 							```
-							$  docker run -it envoyproxy/envoy envoy --help
+							$  docker run -it --rm envoyproxy/envoy envoy --help
 							```
 
 							### Try running
 
 							```
-							$  docker run -it envoyproxy/envoy envoy
+							$  docker run -it --rm envoyproxy/envoy envoy
 
 							[2017-11-29 23:37:44.748][1][info][main] source/server/server.cc:157]
 								initializing epoch 0 (hot restart version=9.200.16384.127)
@@ -538,7 +538,7 @@
 							### Let's curl the proxy
 
 							```
-							$  docker run -it --link proxy tutum/curl \
+							$  docker run -it --rm --link proxy tutum/curl \
 							curl  -X GET http://proxy:15001/headers
 							```
 						</script>
@@ -573,7 +573,7 @@
 							Let's curl the admin stats API
 
 							```
-							$  docker run -it --link proxy tutum/curl \
+							$  docker run -it --rm --link proxy tutum/curl \
 							curl -X GET http://proxy:15000/stats
 							```
 
@@ -589,7 +589,7 @@
 							Wow, that's a lot of good info! Let's trim it down:
 
 							```
-							$  docker run -it --link proxy tutum/curl \
+							$  docker run -it --rm --link proxy tutum/curl \
 							curl -X GET http://proxy:15000/stats | grep retry
 
 							cluster.httpbin_service.retry_or_shadow_abandoned: 0
@@ -634,7 +634,7 @@
 
 								```
 								$  docker rm -f proxy
-								$  docker run -it --name proxy --link httpbin \
+								$  docker run -it --rm --name proxy --link httpbin \
 								-v $(pwd)/envoy/conf/simple.json:/etc/simple.json \
 								envoyproxy/envoy envoy -c /etc/simple.json
 								```
@@ -651,14 +651,14 @@
 								Curl the proxy to generate a `500`
 
 								```
-								$  docker run -it --link proxy tutum/curl \
+								$  docker run -it --rm --link proxy tutum/curl \
 								curl -X GET http://proxy:15001/status/500
 								```
 
 								Review the envoy admin stats:
 
 								```
-								$  docker run -it --link proxy tutum/curl \
+								$  docker run -it --rm --link proxy tutum/curl \
 								curl -X GET http://proxy:15000/stats | grep retry
 
 								cluster.httpbin_service.retry.upstream_rq_500: 3
