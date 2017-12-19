@@ -1,9 +1,14 @@
 apiVersion: config.istio.io/v1beta1
 kind: DestinationPolicy
 metadata:
-  name: httpbin-random
+  name: httpbin-least-conn-cb
 spec:
   destination:
-    name: httpbin
+    name: reviews
   loadBalancing:
     name: LEAST_CONN
+  circuitBreaker:
+    simpleCb:
+      maxConnections: 5
+      sleepWindow: 5m
+      httpDetectionInterval: 1m
