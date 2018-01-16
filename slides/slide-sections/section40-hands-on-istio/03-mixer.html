@@ -1,0 +1,127 @@
+<section data-markdown>
+        <script type="text/template">
+          ### Istio Mixer
+
+          Navigate to `$BASE/istio/install`. We will install some additional
+          components to go along with mixer.
+
+          ```
+          $  cd istio/install
+          $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/zipkin.yaml
+          $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/prometheus.yaml
+          $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/grafana.yaml
+
+          ```
+        </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ### Istio Mixer
+
+          Take a look at the mixer yaml and then install it:
+
+          ```
+          $  cat components/istio-mixer.yaml
+          $  kubectl apply -f components/istio-mixer.yaml
+
+          ```
+
+          In previous steps, we commented out the mixer config (from pilot and ingress).
+          Let's re-install those:
+
+          ```
+          $  kubectl apply -f components/istio-pilot.yaml
+          $  kubectl apply -f components/istio-ingress.yaml
+          ```
+        </script>
+      </section>
+
+      <section data-markdown>
+        <script type="text/template">
+          ### Istio Mixer
+
+          To verify the components were installed correctly,
+          get the publicly accessible URLs using the `$BASE/istio/bin/get-urls.sh` script.
+          If using openshift, just create routes for these services like:
+
+          ```
+          $  oc expose svc/zipkin
+          $  oc expose svc/grafana
+
+          $  oc get route
+
+          NAME      HOST/PORT                                   PATH  SERVICES   PORT
+          grafana   grafana-istio-system.192.168.64.34.nip.io         grafana    http
+          zipkin    zipkin-istio-system.192.168.64.34.nip.io          zipkin     http
+
+          ```
+
+          Navigate to one of these openshift routes and verify installation.
+        </script>
+        </section>
+
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Istio Mixer
+
+            Envoy proxies call Mixer to Check and Report. Let's open up some mixer ports
+            to get an idea what calls its seeing:
+
+            ```
+            $  kubectl  port-forward -n istio-system istio-mixer-333075648-rrr2w  9093
+
+            ```
+
+            Navigate to [http://localhost:9093/metrics](http://localhost:9093/metrics)
+            <br/>
+            Do a search for `grpc_server_handled_total`
+
+          </script>
+      </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Exercise Mixer
+
+            Let's call the httpbin service (through ingress or openshift route).
+            Then navigate back to the Mixer stats page and search for `grpc_server_handled_total`
+            Should see something similar to this:
+
+            ```
+            # HELP grpc_server_handled_total Total number of RPCs completed
+            # on the server, regardless of success or failure.
+            # TYPE grpc_server_handled_total counter
+            grpc_server_handled_total{grpc_code="Internal",grpc_method="Report",grpc_service="istio.mixer.v1.Mixer",grpc_type="unary"} 5
+            grpc_server_handled_total{grpc_code="OK",grpc_method="Check",grpc_service="istio.mixer.v1.Mixer",grpc_type="unary"} 49
+
+            ```
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Exercise Mixer
+
+            Let's imitate a mixer call and try send a report.
+            Navigate to `$BASE/istio/bin/<platform>`
+
+            First open the Mixer grpc port:
+            ```
+            $  kubectl  port-forward -n istio-system istio-mixer-333075648-rrr2w  9091
+            ```
+
+            Let's use the `mixc` cli to send a report:
+            ```
+            $  ./mixc report -a target.service=httpbin.istio-samples.svc.cluster.local \
+            --timestamp_attributes request.time=0001-01-01T00:00:00Z
+
+            Report RPC returned OK
+            ```
+
+            Now go search Mixer stats page again. Should see our new query. 
+
+          </script>
+          </section>

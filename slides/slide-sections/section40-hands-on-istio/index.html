@@ -1,0 +1,97 @@
+				<!--Hands on Istio service mesh------------------------------------------------------------------>
+				<!--<section>-->
+                        <section id="hands-on-istio">
+                                <h3>Let's get hands on</h3>
+                                <div align="center">
+                                    <a href="https://istio.io">https://istio.io</a>
+                                </div>
+                                <div align="center">
+                                    <img src="images/istiologo.png"/>
+                                </div>
+                            </section>
+        
+                        <section>
+                            <h3>Prerequisites for hands-on</h3>
+                            <ul>
+                                <li>kubectl/oc cli client</li>
+                                <li>Kubernetes 1.7.5 or greater; <br/>OpenShift 3.7 or greater</li>
+                                <li>admin privileges for cluster</li>
+                                <li>access to multiple terminals (screen, tmux, iterm, etc)</li>
+                            </ul>
+                            <small>I'm using <a href="https://github.com/kubernetes/minikube">minikube</a>/<a href="https://www.openshift.org/minishift/">minishift</a>. YMMV</small>
+                        </section>
+        
+                        <section>
+                            <h3>Additional notes</h3>
+                            <ul>
+                                <li>NOTE: use  <i>oc</i> instead of <i>kubectl</i><br/> when on OpenShift</li>
+                                <li>Istio components will all live in <code>istio-system</code> namespace</li>
+                                <li>You can add <code>istio-samples</code> for your components/samples</li>
+                            </ul>
+                        </section>
+        
+                <section data-markdown>
+                  <script type="text/template">
+                    ### Install latest istio
+        
+        
+        
+                    ```
+                    $  cd istio/install
+                    (istio/install)$  curl -L https://git.io/getLatestIstio | sh -
+                    ```
+                    Don't actually do the installation yet. We will take a piece-by-piece approach.
+        
+                  </script>
+                </section>
+        
+        
+                <section data-markdown>
+                  <script type="text/template">
+                    ### Official istio download
+                    You can also take a look at the official<br/> [installation instructions from istio.io](https://istio.io/docs/setup/kubernetes/quick-start.html). Again, DON'T install anything yet. We'll take it piece by piece.
+                  </script>
+                </section>
+        
+        
+        
+                            <section data-markdown>
+                                <script type="text/template">
+                                    ### Istio component deep dive
+        
+                                    Navigate to `$BASE/istio/install/components`
+        
+                                    ```
+                                    $  cd istio/install/components
+                                    (istio/install/components)$  ls -l
+        
+                                    -rw-r--r--  1 ceposta  staff   1.5K Dec  4 09:45 istio-ca.yaml
+                                    -rw-r--r--  1 ceposta  staff   2.7K Dec  4 09:40 istio-ingress.yaml
+                                    -rw-r--r--  1 ceposta  staff    18K Dec  4 09:45 istio-mixer.yaml
+                                    -rw-r--r--  1 ceposta  staff   152B Dec  4 09:40 istio-namespace.yaml
+                                    -rw-r--r--  1 ceposta  staff   9.4K Dec  4 14:48 istio-pilot.yaml
+                                    ```
+                                </script>
+                            </section>
+        
+        
+        
+                            <section data-markdown>
+                                <script type="text/template">
+                                    ### Set up istio namespace
+        
+                                    Kubernetes:
+        
+                                    ```
+                                    $  kubectl apply -f istio-namespace.yaml
+                                    ```
+        
+                                    OpenShift:
+        
+                                    ```
+                                    $  oc adm policy add-scc-to-user anyuid -z default -n istio-system
+                                    $  oc new-project istio-system
+                                    ```
+        
+                                </script>
+                            </section>

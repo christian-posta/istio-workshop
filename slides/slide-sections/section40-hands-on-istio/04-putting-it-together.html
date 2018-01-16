@@ -1,0 +1,248 @@
+                      <section data-markdown id="istio-data-model">
+                      	<script type="text/template">
+													### Putting it all together
+													
+													Istio high-level model:
+
+													* Route rules
+													* Destination policy
+													* Egress rules
+													* Mixer rules
+												</script>
+												<!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+                      </section>
+        <section data-markdown>
+          <script type="text/template">
+            ### Deploy bookinfo
+
+            Navigate to $BASE/istio and run the following:
+
+            ```
+            $  istioctl kube-inject -f bookinfo/bookinfo.yaml | kubectl apply -f -
+            ```
+
+            If on OpenShift, you'll need to allow some relaxed permissions because some of the services
+            write logs to `/opt/*`
+
+            ```
+            $  oc adm policy add-scc-to-user anyuid -z default -n istio-samples
+            ```
+
+            You can then use Kubernetes ingress or OpenShift routes to expose the `productpage` svc:
+
+            ```
+            $  ./bin/get-ingress-url.sh
+            ```
+
+          </script>
+          <!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+        </section>
+
+        <section data-markdown>
+					<script type="text/template">
+						### Route rules
+
+						![service model](images/istio-svc-model.png)
+          </script>
+					<!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+				</section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Force all traffic to v1
+
+            ```
+            apiVersion: config.istio.io/v1alpha2
+            kind: RouteRule
+            metadata:
+              name: productpage-default
+            spec:
+            ## Used by services inside the Kubernetes cluster
+              destination:
+                name: productpage
+              precedence: 1
+              route:
+              - labels:
+                  version: v1
+            ```
+
+          </script>
+          <!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Force all traffic to v1
+
+
+            ```
+            $  istioctl create -f bookinfo/route-rules/route-rule-all-v1.yaml -n istio-samples
+
+            Created config route-rule//productpage-default at revision 420820
+            Created config route-rule//reviews-default at revision 420821
+            Created config route-rule//ratings-default at revision 420822
+            Created config route-rule//details-default at revision 420823
+            ```
+
+            Note the `istioctl` command is not namespace aware -- need to be explicit!
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Check routing rules:
+
+            ```
+            $  # this gets all route rules across namespaces
+            $  istioctl get routerules
+            $  # can use plain kubectl also (namespace specific)
+            $  kubectl get routerules
+
+            ```
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Deploy reviews v2
+
+            ```
+            $  istioctl kube-inject -f bookinfo/reviews-deployment-v2.yaml \
+            | kubectl apply -f -
+
+            deployment "reviews-v2" created
+
+            ```
+
+            Try hitting the reviews API (substitute for your ingress endpoint or OpenShift Route)
+
+            ```
+            $  curl 192.168.64.34:31250/api/v1/products/0/reviews
+            {
+              "id": "0",
+              "reviews": [
+                {
+                  "reviewer": "Reviewer1",
+                  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"
+                },
+                {
+                  "reviewer": "Reviewer2",
+                  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare."
+                }
+              ]
+            }
+            ```
+
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Dark launch reviews v2
+
+            ```
+            $  istioctl create -n istio-samples -f \
+            bookinfo/route-rules/route-rule-reviews-dark-v2.yaml
+
+            Updated config route-rule/istio-samples/reviews-test-v2 to revision 424459
+
+            ```
+
+            Try hitting the reviews API and pass in a cookie param:
+
+            ```
+            $  curl --cookie "user=jason" 192.168.64.34:31250/api/v1/products/0/reviews
+            {
+              "id": "0",
+              "reviews": [
+                {
+                  "rating": { "color": "black", "stars": 5 },
+                  "reviewer": "Reviewer1",
+                  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"
+                },
+                {
+                  "rating": { "color": "black", "stars": 4 },
+                  "reviewer": "Reviewer2",
+                  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare."
+                }
+              ]
+            }
+            ```
+
+          </script>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            ### Where do these routing rules live?
+
+            In Pilot RDS services. Log into the `productpage` pod's proxy and
+            let's take a look at the routes;
+
+
+            ```
+            $  kubectl exec -it productpage-v1-3581918468-b9lws -c istio-proxy sh
+            $>  curl localhost:15000/routes
+
+            ```
+            In the response we should see an entry for:
+
+            ```
+            {
+              "name": "reviews.istio-samples.svc.cluster.local|http",
+              "domains": [
+                "reviews:9080",
+                "reviews",
+                "reviews.istio-samples:9080",
+                "reviews.istio-samples",
+                "reviews.istio-samples.svc:9080",
+                "reviews.istio-samples.svc",
+                "reviews.istio-samples.svc.cluster:9080",
+                "reviews.istio-samples.svc.cluster",
+                "reviews.istio-samples.svc.cluster.local:9080",
+                "reviews.istio-samples.svc.cluster.local",
+                "172.30.160.190:9080",
+                "172.30.160.190"
+              ],
+              "routes": [
+                {
+                  "match": {
+                    "prefix": "/",
+                    "headers": [
+                      {
+                        "name": "cookie",
+                        "value": "^(.*?;)?(user=jason)(;.*)?$",
+                        "regex": true
+                      }
+                    ]
+                  },
+                  "route": {
+                    "cluster": "out.reviews.istio-samples.svc.cluster.local|http|version=v2",
+                    "timeout": "0s"
+                  },
+                  "decorator": {
+                    "operation": "reviews-test-v2"
+                  }
+                },
+                {
+                  "match": {
+                    "prefix": "/"
+                  },
+                  "route": {
+                    "cluster": "out.reviews.istio-samples.svc.cluster.local|http|version=v1",
+                    "timeout": "0s"
+                  },
+                  "decorator": {
+                    "operation": "reviews-default"
+                  }
+                }
+              ]
+            }
+            ```
+
+            Note the routing based on Cookie params.
+
+
+          </script>
+        </section>

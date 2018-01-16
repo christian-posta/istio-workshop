@@ -1,0 +1,220 @@
+	<!--How did we get here------------------------------------------------------------------>
+				<!--<section>-->
+                        <section id="how-we-got-here">
+                                <h3>How did we get here</h3>
+        
+                                <aside class="notes">
+                                    Let's talk about some of the drivers of how we got here
+                                </aside>
+                            </section>
+        
+        
+                            <section>
+                                <h3>so you want a services architecture...</h3>
+                                <img src="images/openquote.png" class="no-border" height="50" width="75"/>
+                                <blockquote>"do one thing, do it well"</blockquote>
+                                <blockquote>"pick right technology for the problem"</blockquote>
+                                <blockquote>"individual deployment"</blockquote>
+                            </section>
+        
+        
+                            <section>
+                                <h3>Kubernetes to the rescue!</h3>
+                                <img src="images/little-kube.png" height="300" width="300" class="no-border"/>
+                            </section>
+        
+        
+                            <section>
+                                <p>Kubernetes is a deployment platform; <br/>it does not adequately address service communication</p>
+                            </section>
+        
+        
+                            <section>
+                                <p>the network is <i>not</i> reliable</p>
+                                <small>
+                                    <a href="https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing">fallacies of distributed computing</a>
+                                </small>
+                                <aside class="notes">
+                                    The network is reliable.
+                                    Latency is zero.
+                                    Bandwidth is infinite.
+                                    The network is secure.
+                                    Topology doesn't change.
+                                    There is one administrator.
+                                    Transport cost is zero.
+                                    The network is homogeneous.
+                                </aside>
+                            </section>
+        
+        
+                            <section>
+                                <h3>can kubernetes help?</h3>
+                                <ul>
+                                    <li>DNS based service discovery</li>
+                                    <li>simple L3/4 load balancing</li>
+                                </ul>
+                            </section>
+        
+        
+        
+                            <section>
+                                <h4>every application must account for</h4>
+                                <ul>
+                                    <li>unpredictable failure modes</li>
+                                    <li>end-to-end application correctness</li>
+                                    <li>system degradation</li>
+                                    <li>topology changes</li>
+                                    <li>elastic/ephemeral/transient resources</li>
+                                </ul>
+                            </section>
+        
+        
+        
+        
+                            <section>
+                                <p>so we do things like...</p>
+                                <ul>
+                                    <li>circuit breaking</li>
+                                    <li>bulkheading</li>
+                                    <li>timeouts</li>
+                                    <li>retries</li>
+                                    <li>service discovery</li>
+                                    <li>client-side loadbalancing</li>
+                                </ul>
+                            </section>
+        
+        
+                            <section>
+                                <p class="left-align">actually, entire suites of frameworks
+                                    were built to help	developers address these
+                                    resilience concerns
+                                </p>
+                                <img src="images/finagle.png" class="no-border"/>
+                                <img src="images/netflixoss.png" class="no-border"/>
+        
+                            </section>
+        
+        
+                            <section>
+                                <img src="images/netflixoss2.png" class="no-border"/>
+                                <br/>
+                                <ul>
+                                    <li>Hystrix</li>
+                                    <li>Zuul</li>
+                                    <li>Ribbon</li>
+                                    <li>Eureka</li>
+                                    <li>Brave/Zipkin</li>
+                                    <li>Spector/Atlas</li>
+                                </ul>
+                            </section>
+        
+        
+        
+                            <section>
+                                <img src="images/network-commingled.png"/>
+                            </section>
+        
+        
+                            <section>
+                                <h3>but i'm using spring!</h3>
+                                <ul>
+                                    <li>spring-cloud-netflix-hystrix</li>
+                                    <li>spring-cloud-netflix-zuul</li>
+                                    <li>spring-cloud-netflix-eureka-client</li>
+                                    <li>spring-cloud-netflix-ribbon</li>
+                                    <li>spring-cloud-netflix-atlas</li>
+                                    <li>spring-cloud-netflix-spectator</li>
+                                    <li>spring-cloud-netflix-hystrix-stream</li>
+                                    <li>...</li>
+                                    <li><i>@Enable....150MagicThings</i></li>
+        
+                                </ul>
+                            </section>
+        
+        
+                            <section>
+                                <h3>but i'm using vert.x</h3>
+                                <ul>
+                                    <li>vertx-circuit-breaker</li>
+                                    <li>vertx-service-discovery</li>
+                                    <li>vertx-dropwizard-metrics</li>
+                                    <li>vertx-zipkin</li>
+                                    <li>...</li>
+                                </ul>
+                            </section>
+        
+        
+                            <section>
+                                <h3>but i'm using...</h3>
+                                <ul>
+                                    <li class="fragment">NodeJS</li>
+                                    <li class="fragment">Go</li>
+                                    <li class="fragment">Python</li>
+                                    <li class="fragment">Ruby</li>
+                                    <li class="fragment">Perl</li>
+                                    <li class="fragment">Get the point!?</li>
+                                </ul>
+                            </section>
+        
+        
+                            <section>
+                                <p class="left-align">so for every language/framework combination, you need...</p>
+                                <ul>
+                                    <li>service discovery</li>
+                                    <li>retries</li>
+                                    <li>timeouts</li>
+                                    <li>load balancing</li>
+                                    <li>bulk heading</li>
+                                    <li>circuit breaking</li>
+                                    <li>rate limiting</li>
+                                </ul>
+                            </section>
+        
+        
+                            <section>
+                                <p class="left-align">so for every language/framework combination, you need...</p>
+                                <ul>
+                                    <li>adaptive routing</li>
+                                    <li>deadlines</li>
+                                    <li>back pressure</li>
+                                    <li>outlier detection</li>
+                                    <li>health checking</li>
+                                    <li>traffic shaping</li>
+                                    <li>request shadowing</li>
+                                </ul>
+                            </section>
+        
+        
+                            <section>
+                                <p class="left-align">so for every language/framework combination, you need...</p>
+                                <ul>
+                                    <li>edge/dmz routing</li>
+                                    <li>surgical / fine / per-request routing</li>
+                                    <li>A/B testing rollout</li>
+                                    <li>dark launches</li>
+                                    <li>fault injection</li>
+                                    <li>stats, metric collection</li>
+                                    <li>observability</li>
+                                </ul>
+                            </section>
+        
+        
+                            <section>
+                                <h3>drawbacks to library approach</h3>
+                                <ul>
+                                    <li>need one for each combination language/framework</li>
+                                    <li>need to maintain, upgrade, retire</li>
+                                    <li>classpath/namespace pollution</li>
+                                    <li>increases operational complexity</li>
+                                    <li>force specific languages</li>
+                                    <li>inconsistency</li>
+                                    <li>correctness</li>
+                                </ul>
+                            </section>
+        
+                            <section>
+                                <p>what if we could implement it once, in one spot, and let any language use it?</p>
+                                <img src="images/serviceproxy.png"/>
+                            </section>
+        
+                        <!--</section>-->

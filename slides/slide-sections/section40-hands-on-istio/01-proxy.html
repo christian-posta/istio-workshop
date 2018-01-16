@@ -1,0 +1,62 @@
+<section data-markdown>
+        <script type="text/template">
+            ### Istio proxy
+
+            Let's poke around the istio proxy (based on envoy).
+            Type the following (substitute the
+            httpbin pod name for your pod name):
+
+            ```
+            $  kubectl exec -it httpbin-865958259-k8qfd -c istio-proxy  sh
+
+            (proxy)$  ps aux
+
+            (proxy)$  ls -l /etc/istio/proxy
+
+            (proxy)$  cat /etc/istio/proxy/envoy-rev0.json
+            ```
+
+        </script>
+    </section>
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Istio proxy
+
+            Istio installs iptable rules to route all pod traffic
+            to the envoy listener on 15001.
+            Let's see what rules the istio-proxy thinks it has:
+
+            ```
+            (proxy)$  sudo su -
+            (proxy)$  iptables -t nat -L
+            ```
+
+            Note, these rules get set up as part of the init container, and the iptables rules
+            [are here in the prep scripts](https://github.com/istio/istio/blob/master/pilot/docker/prepare_proxy.sh)
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Istio proxy
+
+            Let's ask the local envoy proxy what it knows about its
+            listeners, routes, clusters, and info (remember it got :
+            this from xDS from Pilot?). Note this requires using the `proxy_debug`
+            docker image for the service proxy.
+
+            ```
+            (proxy)$  curl localhost:15000
+            (proxy)$  curl localhost:15000/listeners
+            (proxy)$  curl localhost:15000/routes
+            (proxy)$  curl localhost:15000/clusters
+            (proxy)$  curl localhost:15000/server_info
+            ```
+
+            See the [admin v1 REST interface for more details](https://www.envoyproxy.io/docs/envoy/v1.5.0/operations/admin)
+
+        </script>
+    </section>

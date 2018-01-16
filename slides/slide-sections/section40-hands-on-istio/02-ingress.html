@@ -1,0 +1,133 @@
+<section data-markdown>
+        <script type="text/template">
+            ### Istio Ingress
+
+            Navigate to `$BASE/istio/install/components`. We'll install the ingress
+            but remove the link to mixer since we still don't have that.
+
+            ```
+            $  cd istio/install/components
+            $  cat istio-ingress.yaml | sed -E '/mixer|stats/d' | kubectl apply -f -
+
+            clusterrolebinding "istio-ingress-admin-role-binding-istio-system" created
+            service "istio-ingress" created
+            serviceaccount "istio-ingress-service-account" created
+            deployment "istio-ingress" created
+
+            ```
+        </script>
+    </section>
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Ingress gets exposed via Loadbalancer
+
+            ```
+            $  kubectl get svc istio-ingress -n istio-system -o yaml
+            apiVersion: v1
+            kind: Service
+            metadata:
+              creationTimestamp: 2017-12-07T18:04:44Z
+              labels:
+                istio: ingress
+              name: istio-ingress
+            spec:
+              type: LoadBalancer
+              clusterIP: 172.30.223.5
+              externalIPs:
+              - 172.29.200.58
+              externalTrafficPolicy: Cluster
+              ports:
+              - name: http
+                nodePort: 31250
+                port: 80
+                protocol: TCP
+                targetPort: 80
+              - name: https
+                nodePort: 31658
+                port: 443
+                protocol: TCP
+                targetPort: 443
+              selector:
+                istio: ingress
+              sessionAffinity: None
+
+            ```
+        </script>
+    </section>
+
+    <section data-markdown>
+      <script type="text/template">
+        ### Ingress is just a simple Istio proxy
+
+        The actual k8s ingress controller lives in *pilot*.
+        `istio-ingress` is really just the istio proxy that is
+        programmed by Envoy routes.
+      </script>
+    </section>
+  <section data-markdown>
+    <script type="text/template">
+      ### Let's create an ingress resource for httpbin
+
+      ```
+      $  cd istio/ing
+      $  kubectl apply -f httpbin-ingress.yaml
+      ```
+
+      Now we should have an ingress resource that routes ingress traffic
+      to httpbin:
+
+      ```
+      $ kubectl get ing
+
+      NAME              HOSTS     ADDRESS         PORTS     AGE
+      gateway   *         172.29.200.58   80        11m
+      ```
+    </script>
+  </section>
+
+  <section data-markdown>
+    <script type="text/template">
+      ### Now let's hit httpbin from outside the cluster
+
+      We need to find the NodePort for our LoadBalancer (if it's not on a cloud
+      that automatically supports LoadBalancer):
+
+      ```
+      $  kubectl get svc/istio-ingress -n istio-system -o yaml \
+      | grep -i nodeport | head -n 1 | awk '{ print $2 }'
+
+      31250
+      ```
+
+      ```
+      $  curl $(minishift ip):31250/headers
+
+      {
+        "headers": {
+          "Accept": "*/*",
+          "Content-Length": "0",
+          "Host": "192.168.64.34:31250",
+          "User-Agent": "curl/7.43.0",
+          "X-B3-Sampled": "1",
+          "X-B3-Spanid": "39a288ace1fe994f",
+          "X-B3-Traceid": "39a288ace1fe994f",
+          "X-Envoy-Internal": "true",
+          "X-Istio-Attributes": "ChMKCXNvdXJjZS5pcBIGMgSsEQADCkIKCnNvdXJjZS51aWQSNBIya3ViZXJuZXRlczovL2h0dHBiaW4tODY1OTU4MjU5LWs4cWZkLmlzdGlvLXNhbXBsZXM=",
+          "X-Ot-Span-Context": "39a288ace1fe994f;39a288ace1fe994f;0000000000000000",
+          "X-Request-Id": "1e7b9738-974f-92f0-859e-c5cfb006c7c1"
+        }
+      }
+      ```
+      <small>you'll have to figure out what's the public IP of your cluster</small>
+      if not using minikube/minishift
+    </script>
+  </section>
+
+  <section data-markdown>
+    <script type="text/template">
+      ### What does the envoy route config for ingress look like?
+      This is an exercise for the user :) Hint: log into the ingress and query the admin
+      REST interface at `http://localhost:15000` :)
+    </script>
+  </section>

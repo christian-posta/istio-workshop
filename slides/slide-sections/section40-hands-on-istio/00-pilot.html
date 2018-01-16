@@ -1,0 +1,611 @@
+<section data-markdown>
+        <script type="text/template">
+            ### Installing Istio Pilot
+
+            Let's take a look at the `istio-pilot.yaml` to understand exactly
+            everything we're installing:
+
+            ```
+            $  cat istio-pilot.yaml
+            ```
+
+        </script>
+    </section>
+
+    <section data-markdown>
+        <script type="text/template">
+            ### istio-pilot.yaml: Cluster Roles and bindings
+
+            ```
+            kind: ClusterRole
+            apiVersion: rbac.authorization.k8s.io/v1beta1
+            metadata:
+              name: istio-pilot-istio-system
+            rules:
+            - apiGroups: ["config.istio.io"]
+              resources: ["*"]
+              verbs: ["*"]
+            - apiGroups: ["apiextensions.k8s.io"]
+              resources: ["customresourcedefinitions"]
+              verbs: ["*"]
+            - apiGroups: ["istio.io"]
+              resources: ["istioconfigs", "istioconfigs.istio.io"]
+              verbs: ["*"]
+            - apiGroups: ["extensions"]
+              resources: ["thirdpartyresources", "thirdpartyresources.extensions", "ingresses", "ingresses/status"]
+              verbs: ["*"]
+            - apiGroups: [""]
+              resources: ["configmaps"]
+              verbs: ["create", "get", "list", "watch", "update"]
+            - apiGroups: [""]
+              resources: ["endpoints", "pods", "services"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: [""]
+              resources: ["namespaces", "nodes", "secrets"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: ["admissionregistration.k8s.io"]
+              resources: ["externaladmissionhookconfigurations"]
+              verbs: ["create", "update", "delete"]
+            ```
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### istio-pilot.yaml: Custom Resource Definitions
+
+            ```
+            apiVersion: apiextensions.k8s.io/v1beta1
+            kind: CustomResourceDefinition
+            metadata:
+                name: routerules.config.istio.io
+            spec:
+              group: config.istio.io
+              names:
+                kind: RouteRule
+                listKind: RouteRuleList
+                plural: routerules
+                singular: routerule
+              scope: Namespaced
+              version: v1alpha2
+            ```
+        </script>
+    </section>
+
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### istio-pilot.yaml: Config Map
+
+            ```
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: istio
+              namespace: istio-system
+            data:
+              mesh: |-
+                # Uncomment the following line to enable mutual TLS between proxies
+                # authPolicy: MUTUAL_TLS
+                #
+                # Edit this list to avoid using mTLS to connect to these services.
+                # Typically, these are control services (e.g kubernetes API server) that don't have Istio sidecar
+                # to transparently terminate mTLS authentication.
+                mtlsExcludedServices: ["kubernetes.default.svc.cluster.local"]
+
+                # Set the following variable to true to disable policy checks by the Mixer.
+                # Note that metrics will still be reported to the Mixer.
+                disablePolicyChecks: false
+                # Set enableTracing to false to disable request tracing.
+                enableTracing: true
+                #
+                # To disable the mixer completely (including metrics), comment out
+                # the following line
+                mixerAddress: istio-mixer.istio-system:15004
+                # This is the ingress service name, update if you used a different name
+                ingressService: istio-ingress
+                #
+                # Along with discoveryRefreshDelay, this setting determines how
+                # frequently should Envoy fetch and update its internal configuration
+                # from Istio Pilot. Lower refresh delay results in higher CPU
+                # utilization and potential performance loss in exchange for faster
+                # convergence. Tweak this value according to your setup.
+                rdsRefreshDelay: 1s
+                #
+                defaultConfig:
+                    discoveryRefreshDelay: 1s
+                    #
+                    # TCP connection timeout between Envoy & the application, and between Envoys.
+                    connectTimeout: 10s
+                    #
+                    ### ADVANCED SETTINGS #############
+                    # Where should envoy's configuration be stored in the istio-proxy container
+                    configPath: "/etc/istio/proxy"
+                    binaryPath: "/usr/local/bin/envoy"
+                    # The pseudo service name used for Envoy.
+                    serviceCluster: istio-proxy
+                    # These settings that determine how long an old Envoy
+                    # process should be kept alive after an occasional reload.
+                    drainDuration: 45s
+                    parentShutdownDuration: 1m0s
+                    #
+                    # Port where Envoy listens (on local host) for admin commands
+                    # You can exec into the istio-proxy container in a pod and
+                    # curl the admin port (curl http://localhost:15000/) to obtain
+                    # diagnostic information from Envoy. See
+                    # https://lyft.github.io/envoy/docs/operations/admin.html
+                    # for more details
+                    proxyAdminPort: 15000
+                    #
+                    # Address where Istio Pilot service is running
+                    discoveryAddress: istio-pilot.istio-system:15003
+                    #
+                    # Zipkin trace collector
+                    zipkinAddress: zipkin.istio-system:9411
+                    #
+                    # Statsd metrics collector. Istio mixer exposes a UDP endpoint
+                    # to collect and convert statsd metrics into Prometheus metrics.
+                    statsdUdpAddress: istio-mixer.istio-system:9125
+                    # Uncomment the following line to enable mutual TLS authentication between
+                    # sidecars and istio control plane.
+                    # controlPlaneAuthPolicy: MUTUAL_TLS
+            ```
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### istio-pilot.yaml: Service
+
+            ```
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: istio-pilot
+              namespace: istio-system
+              labels:
+              istio: pilot
+            spec:
+                ports:
+                - port: 15003
+                  name: http-discovery
+                - port: 443
+                  name: admission-webhook
+                selector:
+                  istio: pilot
+            ```
+
+        </script>
+    </section>
+
+<section data-markdown>
+    <script type="text/template">
+        ### istio-pilot.yaml: Service Account
+
+        ```
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+            name: istio-pilot-service-account
+            namespace: istio-system
+        ```
+
+    </script>
+</section>
+
+
+<section data-markdown>
+    <script type="text/template">
+        ### istio-pilot.yaml: Deployment
+        ```
+        apiVersion: extensions/v1beta1
+        kind: Deployment
+        metadata:
+          name: istio-pilot
+          namespace: istio-system
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          replicas: 1
+          template:
+          metadata:
+            labels:
+              istio: pilot
+          spec:
+            serviceAccountName: istio-pilot-service-account
+            containers:
+            - name: discovery
+              image: docker.io/istio/pilot:0.3.0
+              imagePullPolicy: IfNotPresent
+              args: ["discovery", "-v", "2", "--admission-service", "istio-pilot-external"]
+              ports:
+              - containerPort: 8080
+              - containerPort: 443
+              env:
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              volumeMounts:
+              - name: config-volume
+                mountPath: /etc/istio/config
+            - name: istio-proxy
+              image: docker.io/istio/proxy_debug:0.3.0
+              imagePullPolicy: IfNotPresent
+              ports:
+              - containerPort: 15003
+              args:
+              - proxy
+              - pilot
+              - -v
+              - "2"
+              - --discoveryAddress
+              - istio-pilot:15003
+              - --controlPlaneAuthPolicy
+              - NONE #--controlPlaneAuthPolicy
+              - --customConfigFile
+              - /etc/istio/proxy/envoy_pilot.json
+              volumeMounts:
+              - name: istio-certs
+                mountPath: /etc/certs
+                readOnly: true
+              volumes:
+              - name: config-volume
+                configMap:
+                name: istio
+              - name: istio-certs
+                secret:
+                  secretName: istio.istio-pilot-service-account
+                  optional: true
+        ```
+
+    </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Installing Istio Pilot
+
+            Let's install it...
+
+            ```
+            $  kubectl apply -f istio-pilot.yaml
+
+            clusterrole "istio-pilot-istio-system" configured
+            clusterrole "istio-initializer-istio-system" configured
+            clusterrole "istio-sidecar-istio-system" configured
+            clusterrolebinding "istio-pilot-admin-role-binding-istio-system" configured
+            clusterrolebinding "istio-initializer-admin-role-binding-istio-system" configured
+            clusterrolebinding "istio-sidecar-role-binding-istio-system" configured
+            customresourcedefinition "destinationpolicies.config.istio.io" configured
+            customresourcedefinition "egressrules.config.istio.io" configured
+            customresourcedefinition "routerules.config.istio.io" configured
+            configmap "istio" created
+            service "istio-pilot" created
+            serviceaccount "istio-pilot-service-account" created
+            deployment "istio-pilot" created
+            ```
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### We have Pilot!
+
+            ```
+            $  kubectl get pods -n istio-system
+
+            NAME                       READY   STATUS    RESTARTS   AGE
+            istio-pilot-036077-q4f68   2/2     Running   0          1m
+
+            ```
+        </script>
+    </section>
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Interact with pilot: xDS
+
+            ```
+            $  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
+            -n istio-system --command \
+            -- curl -vvvv 'http://istio-pilot:15003/v1/registration'
+            ```
+
+            Returns services and service endpoints
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Pilot and CRD
+
+            ![Pilot diagram](images/pilotcrd.png)
+
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Let's take a look at a service
+
+            Navigate to `$BASE/istio/install/istio-0.3.0/samples/httpbin`
+
+            ```
+$  cd istio/install/istio-0.3.0/samples/httpbin
+            $  cat httpbin.yaml
+
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: httpbin
+              labels:
+                app: httpbin
+            spec:
+              ports:
+              - name: http
+                port: 8000
+                selector:
+                  app: httpbin
+            ---
+            apiVersion: extensions/v1beta1
+            kind: Deployment
+            metadata:
+              name: httpbin
+            spec:
+              replicas: 1
+              template:
+                metadata:
+                  labels:
+                  app: httpbin
+              spec:
+                containers:
+                - image: docker.io/citizenstig/httpbin
+                  imagePullPolicy: IfNotPresent
+                  name: httpbin
+                  ports:
+                  - containerPort: 8000
+            ```
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Let's decorate our service with sidecar
+
+            ```
+            $	 ../../bin/istioctl kube-inject -f httpbin.yaml
+
+            apiVersion: extensions/v1beta1
+            kind: Deployment
+            metadata:
+              annotations:
+                sidecar.istio.io/status: injected-version-root@24c944bda24b-0.3.0-24ec6a3ac3a1d592d1873d2d8198278a849b8301
+              creationTimestamp: null
+              name: httpbin
+            spec:
+              replicas: 1
+              strategy: {}
+              template:
+                metadata:
+                  annotations:
+                    sidecar.istio.io/status: injected-version-root@24c944bda24b-0.3.0-24ec6a3ac3a1d592d1873d2d8198278a849b8301
+                creationTimestamp: null
+                labels:
+                  app: httpbin
+              spec:
+                containers:
+                  - image: docker.io/citizenstig/httpbin
+                  imagePullPolicy: IfNotPresent
+                  name: httpbin
+                  ports:
+                  - containerPort: 8000
+                    resources: {}
+                    - args:
+                      - proxy
+                      - sidecar
+                      - -v
+                      - "2"
+                      - --configPath
+                      - /etc/istio/proxy
+                      - --binaryPath
+                      - /usr/local/bin/envoy
+                      - --serviceCluster
+                      - httpbin
+                      - --drainDuration
+                      - 45s
+                      - --parentShutdownDuration
+                      - 1m0s
+                      - --discoveryAddress
+                      - istio-pilot.istio-system:15003
+                      - --discoveryRefreshDelay
+                      - 1s
+                      - --zipkinAddress
+                      - zipkin.istio-system:9411
+                      - --connectTimeout
+                      - 10s
+                      - --statsdUdpAddress
+                      - istio-mixer.istio-system:9125
+                      - --proxyAdminPort
+                      - "15000"
+                      - --controlPlaneAuthPolicy
+                      - NONE
+                env:
+                  - name: POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.name
+                  - name: POD_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+                  - name: INSTANCE_IP
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: status.podIP
+                image: docker.io/istio/proxy_debug:0.3.0
+                imagePullPolicy: IfNotPresent
+                name: istio-proxy
+                resources: {}
+                securityContext:
+                  privileged: true
+                  readOnlyRootFilesystem: false
+                  runAsUser: 1337
+                volumeMounts:
+                - mountPath: /etc/istio/proxy
+                  name: istio-envoy
+                - mountPath: /etc/certs/
+                  name: istio-certs
+                  readOnly: true
+              initContainers:
+              - args:
+                - -p
+                - "15001"
+                - -u
+                - "1337"
+                image: docker.io/istio/proxy_init:0.3.0
+                imagePullPolicy: IfNotPresent
+                name: istio-init
+                resources: {}
+                  securityContext:
+                    capabilities:
+                      add:
+                      - NET_ADMIN
+                      privileged: true
+              - args:
+                - -c
+                - sysctl -w kernel.core_pattern=/etc/istio/proxy/core.%e.%p.%t && ulimit -c
+                  unlimited
+                command:
+                - /bin/sh
+                image: alpine
+                imagePullPolicy: IfNotPresent
+                name: enable-core-dump
+                resources: {}
+                securityContext:
+                  privileged: true
+                volumes:
+                - emptyDir:
+                  medium: Memory
+                  sizeLimit: "0"
+                  name: istio-envoy
+                - name: istio-certs
+                  secret:
+                    optional: true
+                    secretName: istio.default
+               status: {}
+            ```
+        </script>
+    </section>
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Creating our samples namespace
+
+            Let's create the namespace used to deploy our sample applications:
+
+            ```
+            $ kubectl create namespace istio-samples
+            ```
+
+            Note, on OpenShift, you'll need to enable permissions in your
+            namespace/project for the proxy (we'll come back to that):
+
+            ```
+            $  oc new-project istio-samples
+            $  oc adm policy add-scc-to-user privileged -z default -n istio-samples
+            ```
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Deploy our service
+
+            We'll deploy our service, but exclude the mixer stuff for now
+            as we just have pilot deployed.
+
+            ```
+            $  ../../bin/istioctl kube-inject -f httpbin.yaml \
+            | sed -E  '/mixer|stats/d' \
+            | kubectl apply -f -
+            ```
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Do we see our service in Pilot's SDS?
+
+            ```
+            $  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
+            -n istio-system --command -- \
+            curl -vvvv 'http://istio-pilot:15003/v1/registration/httpbin.istio-samples.svc.cluster.local|http'
+
+            {
+              "hosts": [
+                {
+                  "ip_address": "172.17.0.3",
+                  "port": 8000
+                }
+              ]
+            }
+            ```
+
+
+        </script>
+    </section>
+
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Our service now has an envoy sidecar:
+
+            ```
+            $  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
+            --command -- curl -vvvv http://httpbin:8000/headers
+
+            {
+              "headers": {
+                  "Accept": "*/*",
+                  "Content-Length": "0",
+                  "Host": "httpbin:8000",
+                  "User-Agent": "curl/7.54.0",
+                  "X-B3-Sampled": "1",
+                  "X-B3-Spanid": "8d9cd38dc2ac623e",
+                  "X-B3-Traceid": "8d9cd38dc2ac623e",
+                  "X-Istio-Attributes": "ChMKCXNvdXJjZS5pcBIGMgSsEQADCkIKCnNvdXJjZS51aWQSNBIya3ViZXJuZXRlczovL2h0dHBiaW4tODY1OTU4MjU5LWs4cWZkLmlzdGlvLXNhbXBsZXM=",
+                  "X-Ot-Span-Context": "8d9cd38dc2ac623e;8d9cd38dc2ac623e;0000000000000000",
+                  "X-Request-Id": "75764196-ab89-9937-887f-bcbb3e7bf34b"
+              }
+            }
+
+            ```
+
+Note all of the new headers!
+
+
+        </script>
+    </section>
