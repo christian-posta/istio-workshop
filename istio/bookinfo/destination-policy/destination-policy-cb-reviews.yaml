@@ -10,5 +10,3 @@ spec:
   circuitBreaker:
     simpleCb:
       maxConnections: 5
-      sleepWindow: 5m
-      httpDetectionInterval: 1m

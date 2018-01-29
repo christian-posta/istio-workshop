@@ -5,6 +5,8 @@ export XHYVE_EXPERIMENTAL_NFS_SHARE=true
 minishift start --memory=4096 --disk-size=30g --openshift-version=v3.7.0
 
 ## login as admin
+#  oc adm policy add-cluster-role-to-user cluster-admin admin --as=system:admin
+#  docker exec -it $(docker ps | grep origin:v3.7.0 | awk '{ print $1}') sh -c " oc adm policy add-cluster-role-to-user cluster-admin admin --as=system:admin"
 oc login -u system:admin
 
 

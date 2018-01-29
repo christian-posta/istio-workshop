@@ -4,11 +4,17 @@ metadata:
   name: httpbin-least-conn-cb
 spec:
   destination:
-    name: reviews
+    name: httpbin
+    labels:
+      version: v1
   loadBalancing:
     name: LEAST_CONN
   circuitBreaker:
     simpleCb:
-      maxConnections: 5
-      sleepWindow: 5m
-      httpDetectionInterval: 1m
+      maxConnections: 1
+      httpMaxPendingRequests: 1
+      sleepWindow: 3m
+      httpDetectionInterval: 1s
+      httpMaxEjectionPercent: 100
+      httpConsecutiveErrors: 1
+      httpMaxRequestsPerConnection: 1
