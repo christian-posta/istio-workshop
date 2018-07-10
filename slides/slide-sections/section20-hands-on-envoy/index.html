@@ -27,7 +27,7 @@
                             <section>
                                 <h3>Pull some images</h3>
                                 <blockquote>
-                                    docker pull envoyproxy/envoy
+                                    docker pull envoyproxy/envoy:v1.7.0
                                 </blockquote>
                                 <blockquote>
                                     docker pull tutum/curl
@@ -69,13 +69,13 @@
                                     ### Checkout Envoy!
         
                                     ```
-                                    $  docker run -it --rm envoyproxy/envoy envoy --help
+                                    $  docker run -it --rm envoyproxy/envoy:v1.7.0 envoy --help
                                     ```
         
                                     ### Try running
         
                                     ```
-                                    $  docker run -it --rm envoyproxy/envoy envoy
+                                    $  docker run -it --rm envoyproxy/envoy:v1.7.0 envoy
         
                                     [2017-11-29 23:37:44.748][1][info][main] source/server/server.cc:157]
                                         initializing epoch 0 (hot restart version=9.200.16384.127)
@@ -95,20 +95,15 @@
                                 <script type="text/template">
                                     ### Envoy config file
                                     ```
-                                    {
-                                      "listeners": "tcp://0.0.0.0:15001",
-                                      "filters": [ .... ],
-                                      "admin": {
-                                        ...
-                                      },
-                                      "cluster_manager": {
-                                        "clusters": {
-                                           "name": "foo_service",
-                                           "type": "logical_dns",
-                                           "lb_type": "round_robin",
-                                           "hosts": [ ... ]
-                                        }
-                                      }
+                                    listeners:
+                                    - name: httpbin-demo
+                                      address:
+                                        socket_address: { address: 0.0.0.0, port_value: 15001 }
+                                    ...
+                                    clusters:
+                                      - name: httpbin_service
+                                      connect_timeout: 5s                           
+                                      hosts: [{ socket_address: { address: httpbin, port_value: 8000 }}]
                                     ```
         
                                     [See the Envoy docs for more detail](https://www.envoyproxy.io/docs/envoy/latest/intro/intro)
@@ -119,7 +114,7 @@
                             <section>
                                 <h3>Our sample envoy config file</h3>
                                 <a href="https://github.com/christian-posta/istio-workshop/blob/master/envoy/conf/simple.json" target="_blank">
-                                    https://github.com/christian-posta/istio-workshop/blob/master/envoy/conf/simple.json
+                                    https://github.com/christian-posta/istio-workshop/blob/master/envoy/conf/simple.yaml
                                 </a>
                             </section>
         
@@ -129,26 +124,15 @@
                                     ### Let's run with a configuration file
         
                                     ```
-                                    $  docker run -it --name proxy --link httpbin \
-                                    -v $(pwd)/envoy/conf/simple.json:/etc/simple.json \
-                                    envoyproxy/envoy envoy -c /etc/simple.json
+                                    $  docker run -it --rm --name proxy --link httpbin \
+                                     -v $(pwd)/envoy/conf/simple.yaml:/etc/simple.yaml \
+                                     envoyproxy/envoy:v1.7.0 envoy -c /etc/simple.yaml
+
         
-                                    [2017-11-30 14:05:03.047][1][info][main] source/server/server.cc:157]
-                                      initializing epoch 0 (hot restart version=9.200.16384.127)
-                                    [2017-11-30 14:05:03.061][1][info][config]
-                                      source/server/configuration_impl.cc:45] loading 1 listener(s)
-                                    [2017-11-30 14:05:03.070][1][info][config]
-                                      source/server/configuration_impl.cc:83] loading tracing configuration
-                                    [2017-11-30 14:05:03.070][1][info][config]
-                                      source/server/configuration_impl.cc:109] loading stats sink configuration
-                                    [2017-11-30 14:05:03.071][1][info][main] source/server/server.cc:348]
-                                      starting main dispatch loop
-                                    [2017-11-30 14:05:03.075][1][info][upstream]
-                                      source/common/upstream/cluster_manager_impl.cc:131] cm init: all clusters initialized
-                                    [2017-11-30 14:05:03.075][1][info][main]
-                                      source/server/server.cc:332] all clusters initialized. initializing init manager
-                                    [2017-11-30 14:05:03.075][1][info][config]
-                                      source/server/listener_manager_impl.cc:482] all dependencies initialized. starting workers
+                                     [2018-07-09 20:04:08.866][6][info][config] source/server/configuration_impl.cc:116] loading stats sink configuration
+                                     [2018-07-09 20:04:08.866][6][info][main] source/server/server.cc:378] all clusters initialized. initializing init manager
+                                     [2018-07-09 20:04:08.866][6][info][config] source/server/listener_manager_impl.cc:781] all dependencies initialized. starting workers
+                                     [2018-07-09 20:04:08.867][6][info][main] source/server/server.cc:398] starting main dispatch loop
                                     ```
                                 </script>
                             </section>
@@ -179,32 +163,45 @@
         
                                     ```
                                     {
-                                      "headers": {
-                                        "Accept": "*/*",
-                                        "Content-Length": "0",
-                                        "Host": "httpbin",
-                                        "User-Agent": "curl/7.35.0",
-                                        "X-Request-Id": "ef264545-4ba6-4865-8172-f9cadcb74e31"
-                                      }
+                                        "headers": {
+                                          "Accept": "*/*", 
+                                          "Content-Length": "0", 
+                                          "Host": "httpbin", 
+                                          "User-Agent": "curl/7.35.0", 
+                                          "X-Envoy-Expected-Rq-Timeout-Ms": "15000", 
+                                          "X-Request-Id": "cea77a96-d540-4da2-8035-d4cd69f2cd4a"
+                                        }
                                     }
                                     ```
                                 </script>
                             </section>
+
+                            <section data-markdown>
+                                <script type="text/template">
+                                    ### Let's change the expected timeout
         
+                                    ```
+                                    - match: { prefix: "/" }
+                                        route: 
+                                            auto_host_rewrite: true
+                                            cluster: httpbin_service   
+                                            timeout: 1s
+                                    ```
+                                </script>
+                            </section>        
         
                             <section data-markdown>
                                 <script type="text/template">
                                     ### Admin stats
         
                                     Let's curl the admin stats API
+
+                                    NOTE: We'll have to change the location of the admin site to listen on 0.0.0.0
         
                                     ```
                                     $  docker run -it --rm --link proxy tutum/curl \
                                     curl -X GET http://proxy:15000/stats
                                     ```
-        
-        
-        
                                 </script>
                             </section>
         
@@ -231,21 +228,17 @@
                                 <script type="text/template">
                                     ### Retries
         
-                                    Let's add some retry semantics to `httpbin_service`. Open The `conf/simple.json` file
-                                    and add (or see the `conf/patches` directory):
+                                    Let's add some retry semantics to `httpbin_service`. Open The `conf/simple.yaml` file
+                                    and add (or see the `conf/simple_retry.yaml` file):
         
                                     ```
-                                    "routes": [
-                                      {
-                                        "timeout_ms": 0,
-                                        "prefix": "/",
-                                        "auto_host_rewrite": true,
-                                        "cluster": "httpbin_service",
-                                        "retry_policy": {
-                                            "retry_on": "5xx",
-                                            "num_retries": 3
-                                        }
-                                    }
+                                    - match: { prefix: "/" }
+                                      route: 
+                                        auto_host_rewrite: true
+                                        cluster: httpbin_service   
+                                        retry_policy:
+                                            retry_on: 5xx
+                                            num_retries: 3    
                                     ```
                                 </script>
                             </section>
@@ -304,26 +297,17 @@
                                     ### Additional config: circuit breaking
         
                                     ```
-                                    "cluster_manager": {
-                                      "clusters": [
-                                        {
-                                          "name": "httpbin_service",
-                                          "hosts": [
-                                            {
-                                              "url": "tcp://httpbin.org:80"
-                                            }
-                                          ],
-                                          "circuit_breakers": {
-                                            "default": {
-                                              "max_connections": 1,
-                                              "max_pending_requests": 1,
-                                              "max_retries": 3
-                                            }
-                                          },
-        
-                                         ...
-        
-                                         }
+                                    - name: httpbin_service
+                                      dns_lookup_family: V4_ONLY
+                                      connect_timeout: 5s
+                                      type: STATIC
+                                      lb_policy: ROUND_ROBIN
+                                      hosts: [{ socket_address: { address: 172.17.0.4, port_value: 8080 }}]
+                                      circuit_breakers:
+                                        thresholds:
+                                          max_connections: 1
+                                          max_pending_requests: 1
+                                          max_retries: 3
                                     ```
                                 </script>
                             </section>
@@ -334,25 +318,41 @@
                                     ### Additional config: outlier detection
         
                                     ```
-                                    {
-                                      "name": "httpbin_service",
-                                      ...
-                                      "circuit_breakers": {
-                                        "default": {
-                                          "max_connections": 1,
-                                          "max_pending_requests": 1,
-                                          "max_retries": 3
-                                        }
-                                      },
-                                      "outlier_detection" : {
-                                        "consecutive_5xx": 5,
-                                        "max_ejection_percent": 100,
-                                        "interval_ms": 3000
-                                      }
-                                    }
+                                    - name: httpbin_service
+                                      circuit_breakers:
+                                        thresholds:
+                                          max_connections: 1
+                                          max_pending_requests: 1
+                                          max_retries: 3
+                                      outlier_detection:
+                                         consecutive_5xx: 5
+                                         max_ejection_percent: 100
+                                         interval: 3000ms                                    
                                     ```
                                 </script>
                             </section>
+                            <section data-markdown>
+                                <script type="text/template">
+                                    ### SPECIAL NOTE for outlier detection
+
+                                    Understanding `healthy_panic_threshold`
+        
+                                    ```
+                                    - name: httpbin_service
+                                      circuit_breakers:
+                                        thresholds:
+                                          max_connections: 1
+                                          max_pending_requests: 1
+                                          max_retries: 3
+                                      outlier_detection:
+                                         consecutive_5xx: 5
+                                         max_ejection_percent: 100
+                                         interval: 3000ms   
+                                      common_lb_config:
+                                        healthy_panic_threshold: 100.0
+                                    ```
+                                </script>
+                            </section>                            
         
         
                             <section data-markdown>
@@ -361,20 +361,18 @@
         
                                     `lb_type`:
         
-                                    * round_robin
-                                    * least_request
-                                    * ring_hash
-                                    * random
-                                    * original_dst_lb
+                                    * ROUND_ROBIN
+                                    * LEAST_REQUEST
+                                    * RING_HASH
+                                    * RANDOM
+                                    * ORIGINAL_DST_LB
+                                    * MAGLEV
         
                                     ```
-                                    {
-                                      "name": "httpbin_service",
-                                        ...
-                                      "lb_type": "...",
-                                      "ring_hash_lb_config": { ... }
-        
-                                    }
+                                    - name: httpbin_service                                    
+                                      connect_timeout: 5s
+                                      type: STATIC
+                                      lb_policy: {LB_TYPE}
                                     ```
                                 </script>
                             </section>
@@ -385,19 +383,18 @@
                                     ### Additional config: traffic shifting
         
                                     ```
-                                    "routes": [
-                                      {
-                                        "prefix": "/",
-                                        "cluster": "helloworld_v1",
-                                        "runtime": {
-                                          "key": "routing.traffic_shift.helloworld",
-                                          "default": 50
-                                         }
-                                        },
-                                      {
-                                        "prefix": "/",
-                                        "cluster": "helloworld_v2",
-                                      }
+                                    routes:
+                                      - match: { prefix: "/" }
+                                        route: 
+                                          auto_host_rewrite: true
+                                          cluster: httpbin_service_v1   
+                                          runtime:
+                                            runtime_key: "routing.traffic_shift.helloworld"
+                                            default_value: 100                                    
+                                      - match: { prefix: "/" }
+                                        route: 
+                                          auto_host_rewrite: true
+                                          cluster: httpbin_service_v2 
                                     ```
                                 </script>
                             </section>
@@ -405,16 +402,23 @@
         
                             <section data-markdown>
                                 <script type="text/template">
-                                    ### Additional config: traffic shifting
+                                    ### Additional config: traffic splitting
         
                                     ```
-                                    "weighted_clusters": {
-                                      "runtime_key_prefix" : "routing.traffic_split.helloworld",
-                                      "clusters" : [
-                                        { "name" : "helloworld_v1", "weight" : 33 },
-                                        { "name" : "helloworld_v2", "weight" : 33 },
-                                        { "name" : "helloworld_v3", "weight" : 34 }
-                                      ]
+                                    routes:
+                                    - match: { prefix: "/" }
+                                      route: 
+                                        auto_host_rewrite: true 
+                                        weighted_clusters:
+                                            runtime_key_prefix: routing.traffic_split.httpbin_service
+                                            clusters:
+                                              - name: httpbin_service.v1
+                                                weight: 33 
+                                              - name: httpbin_service.v2
+                                                weight: 33
+                                              - name: httpbin_service.v3
+                                                weight: 33                                            
+
                                     ```
                                 </script>
                             </section>
@@ -472,9 +476,10 @@
                                     ### Envoy Discovery (XDS)
         
                                     * Listener discovery service (LDS)
-                                    * v1 Route discovery service (RDS)
+                                    * Route discovery service (RDS)
                                     * Cluster discovery service (CDS)
-                                    * Service discovery service (SDS)
+                                    * Service discovery service (SDS/EDS)
+                                    * Aggregated discovery service
         
         
                                 </script>
@@ -485,62 +490,70 @@
                                 <script type="text/template">
                                     ### Envoy Discovery (LDS)
                                     ```
-                                    {
-                                      "listeners": [],
-                                      "lds": {
-                                        "cluster": "lds",
-                                        "refresh_delay_ms": 60000
-                                      },
+                                    dynamic_resources:
+                                      lds_config:   
+                                        api_config_source:
+                                          api_type: GRPC
+                                          grpc_services:
+                                            - envoy_grpc:
+                                                cluster_name: xds_cluster
+                                    clusters:
+                                    - name: xds_cluster
+                                      connect_timeout: 0.25s
+                                      type: STATIC
+                                      lb_policy: ROUND_ROBIN
+                                      http2_protocol_options: {}
+                                      hosts: [{ socket_address: { address: 127.0.0.3, port_value: 5678 }}]
+                                              
                                     ```
         
                                 </script>
                             </section>
         
-                            <section data-markdown>
-                                <script type="text/template">
-                                    ### Envoy Discovery (LDS)
-                                    ```
-                                    "cluster_manager": {
-                                      "clusters": [
-                                        {
-                                          "name": "lds",
-                                          "connect_timeout_ms": 10000,
-                                          "type": "strict_dns",
-                                          "lb_type": "round_robin",
-                                          "hosts": [
-                                            {
-                                               "url": "tcp://discovery:8080"
-                                            }
-                                          ]
-                                        },
-                                    ```
-        
-                                </script>
-                                </section>
         
                                 <section data-markdown>
                                     <script type="text/template">
-                                        ### Envoy Discovery (SDS)
+                                        ### Envoy Discovery (EDS)
                                         ```
-                                        "sds": {
-                                          "cluster": {
-                                          "name": "sds",
-                                          "connect_timeout_ms": 10000,
-                                          "type": "strict_dns",
-                                          "lb_type": "round_robin",
-                                          "hosts": [
-                                            {
-                                              "url": "tcp://discovery:8080"
-                                            }
-                                          ]
-                                          },
-                                          "refresh_delay_ms": 60000
-                                        },
+                                        clusters:
+                                        - name: httpbin_service
+                                          dns_lookup_family: V4_ONLY
+                                          connect_timeout: 5s
+                                          type: EDS
+                                          lb_policy: ROUND_ROBIN
+                                          eds_cluster_config:
+                                            eds_config:
+                                              api_config_source:
+                                                api_type: GRPC
+                                                cluster_names: [xds_cluster]
                                         ```
         
                                     </script>
                             </section>
+
+                            <section data-markdown>
+                                <script type="text/template">
+                                    ### Aggregated Discovery (ADS)
+                                    ```
+                                    dynamic_resources:
+                                      ads_config:   
+                                        api_config_source:
+                                          api_type: GRPC
+                                          grpc_services:
+                                            - envoy_grpc:
+                                                cluster_name: xds_cluster
+                                    clusters:
+                                    - name: xds_cluster
+                                      connect_timeout: 0.25s
+                                      type: STATIC
+                                      lb_policy: ROUND_ROBIN
+                                      http2_protocol_options: {}
+                                      hosts: [{ socket_address: { address: 127.0.0.3, port_value: 5678 }}]
+                                              
+                                    ```
         
+                                </script>
+                            </section>        
         
                             <section data-markdown>
                                 <script type="text/template">
