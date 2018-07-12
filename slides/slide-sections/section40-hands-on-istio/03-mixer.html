@@ -1,63 +1,43 @@
 <section data-markdown>
-        <script type="text/template">
-          ### Istio Mixer
+  <script type="text/template">
+      ### Istio Mixer
 
-          Navigate to `$BASE/istio/install`. We will install some additional
-          components to go along with mixer.
+      Installing the telemetry and policy components (Istio Mixer)
 
-          ```
-          $  cd istio/install
-          $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/zipkin.yaml
-          $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/prometheus.yaml
-          $  kubectl apply -f istio-0.3.0/install/kubernetes/addons/grafana.yaml
+      ```
+      ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
+      $  helm upgrade --install --force istio install/kubernetes/helm/istio --values ../values-install-istio-mixer.yaml --namespace istio-system
+      ```
 
-          ```
-        </script>
-      </section>
+      Note, we could also use the convenience scripts from the source code of this workshop:
 
-      <section data-markdown>
-        <script type="text/template">
-          ### Istio Mixer
+      ```
+      ($BASE/istio/dist/)
+      $  ./helm-upgrade.sh istio-mixer
+      ```
 
-          Take a look at the mixer yaml and then install it:
-
-          ```
-          $  cat components/istio-mixer.yaml
-          $  kubectl apply -f components/istio-mixer.yaml
-
-          ```
-
-          In previous steps, we commented out the mixer config (from pilot and ingress).
-          Let's re-install those:
-
-          ```
-          $  kubectl apply -f components/istio-pilot.yaml
-          $  kubectl apply -f components/istio-ingress.yaml
-          ```
-        </script>
-      </section>
+      Note, helm-2.9.1 has a major bug in upgrades; we'll traverse this in the live workshop.
+  </script>
+</section>
 
       <section data-markdown>
         <script type="text/template">
           ### Istio Mixer
 
-          To verify the components were installed correctly,
-          get the publicly accessible URLs using the `$BASE/istio/bin/get-urls.sh` script.
-          If using openshift, just create routes for these services like:
+          After successful installation you should have pods in the `istio-system` namespace like this:
 
           ```
-          $  oc expose svc/zipkin
-          $  oc expose svc/grafana
-
-          $  oc get route
-
-          NAME      HOST/PORT                                   PATH  SERVICES   PORT
-          grafana   grafana-istio-system.192.168.64.34.nip.io         grafana    http
-          zipkin    zipkin-istio-system.192.168.64.34.nip.io          zipkin     http
+          $   kubectl -n istio-system get po
+          NAME                                       READY     STATUS    RESTARTS   AGE
+          istio-citadel-85fcc767fc-vkzx4             1/1       Running   0          1h
+          istio-ingressgateway-84bb684f68-gvd4s      1/1       Running   0          2m
+          istio-pilot-6db8d59464-tnk5j               2/2       Running   0          1h
+          istio-policy-7b978cf7df-xfgpn              2/2       Running   0          1h
+          istio-statsd-prom-bridge-59b45fd6d-q74sd   1/1       Running   0          5m
+          istio-telemetry-7dfcc797b6-z5rjk           2/2       Running   0          1h
 
           ```
 
-          Navigate to one of these openshift routes and verify installation.
         </script>
         </section>
 
@@ -70,7 +50,7 @@
             to get an idea what calls its seeing:
 
             ```
-            $  kubectl  port-forward -n istio-system istio-mixer-333075648-rrr2w  9093
+            $  kubectl  port-forward -n istio-system istio-telemetry-7dfcc797b6-z5rjk  9093
 
             ```
 
@@ -85,7 +65,7 @@
           <script type="text/template">
             ### Exercise Mixer
 
-            Let's call the httpbin service (through ingress or openshift route).
+            Let's call the httpbin service 
             Then navigate back to the Mixer stats page and search for `grpc_server_handled_total`
             Should see something similar to this:
 
@@ -110,13 +90,13 @@
 
             First open the Mixer grpc port:
             ```
-            $  kubectl  port-forward -n istio-system istio-mixer-333075648-rrr2w  9091
+            $  kubectl  port-forward -n istio-telemetry-7dfcc797b6-z5rjk  9091
             ```
 
             Let's use the `mixc` cli to send a report:
             ```
-            $  ./mixc report -a target.service=httpbin.istio-samples.svc.cluster.local \
-            --timestamp_attributes request.time=0001-01-01T00:00:00Z
+            $  ./mixc report -a target.service=httpbin.istio-samples.svc.cluster.local --timestamp_attributes response.time=2006-01-02T15:05:05Z,request.time=2006-01-02T15:04:05Z
+
 
             Report RPC returned OK
             ```

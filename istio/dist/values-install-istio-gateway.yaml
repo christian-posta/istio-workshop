@@ -196,7 +196,7 @@ gateways:
       secretName: istio-ingressgateway-ca-certs
       mountPath: /etc/istio/ingressgateway-ca-certs
   istio-egressgateway:
-    enabled: true
+    enabled: false
     labels:
       istio: egressgateway
     replicaCount: 1

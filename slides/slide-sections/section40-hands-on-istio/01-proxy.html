@@ -25,15 +25,21 @@
 
             Istio installs iptable rules to route all pod traffic
             to the envoy listener on 15001.
-            Let's see what rules the istio-proxy thinks it has:
+            Let's see what rules the istio-proxy thinks it has.
 
             ```
             (proxy)$  sudo su -
             (proxy)$  iptables -t nat -L
             ```
 
+            Change to give privilege to this pod just for this exercise:
+
+            ```
+            $  kubectl edit deploy httpbin
+            ```
+
             Note, these rules get set up as part of the init container, and the iptables rules
-            [are here in the prep scripts](https://github.com/istio/istio/blob/master/pilot/docker/prepare_proxy.sh)
+            [are here in the prep scripts](https://github.com/istio/istio/blob/master/tools/deb/istio-iptables.sh)
 
         </script>
     </section>
@@ -41,12 +47,10 @@
 
     <section data-markdown>
         <script type="text/template">
-            ### Istio proxy
+            ### Digging into the Proxy's truth
 
             Let's ask the local envoy proxy what it knows about its
-            listeners, routes, clusters, and info (remember it got :
-            this from xDS from Pilot?). Note this requires using the `proxy_debug`
-            docker image for the service proxy.
+            listeners, routes, clusters.
 
             ```
             (proxy)$  curl localhost:15000
@@ -56,7 +60,26 @@
             (proxy)$  curl localhost:15000/server_info
             ```
 
-            See the [admin v1 REST interface for more details](https://www.envoyproxy.io/docs/envoy/v1.5.0/operations/admin)
 
         </script>
     </section>
+    <section data-markdown>
+        <script type="text/template">
+            ### Digging into the Proxy's truth
+
+            Using `istioctl`
+
+            ```
+            $  istioctl proxy-config bootstrap|listeners|clusters|route <pod_name>
+            ```
+            
+            Examples:
+
+            ```
+            $  istioctl proxy-config bootstrap httpbin-85899d9474-rq47q
+            $  istioctl proxy-config listeners httpbin-85899d9474-rq47q
+            $  istioctl proxy-config listeners httpbin-85899d9474-rq47q -o json
+            ```
+
+        </script>
+    </section>    

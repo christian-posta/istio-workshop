@@ -14,31 +14,28 @@
                             <h3>Prerequisites for hands-on</h3>
                             <ul>
                                 <li>kubectl/oc cli client</li>
-                                <li>Kubernetes 1.7.5 or greater; <br/>OpenShift 3.7 or greater</li>
+                                <li>helm >2.7.2</li>
+                                <li>Kubernetes 1.9 or greater; <br/>OpenShift 3.9 or greater</li>
                                 <li>admin privileges for cluster</li>
                                 <li>access to multiple terminals (screen, tmux, iterm, etc)</li>
                             </ul>
                             <small>I'm using <a href="https://github.com/kubernetes/minikube">minikube</a>/<a href="https://www.openshift.org/minishift/">minishift</a>. YMMV</small>
                         </section>
         
-                        <section>
-                            <h3>Additional notes</h3>
-                            <ul>
-                                <li>NOTE: use  <i>oc</i> instead of <i>kubectl</i><br/> when on OpenShift</li>
-                                <li>Istio components will all live in <code>istio-system</code> namespace</li>
-                                <li>You can add <code>istio-samples</code> for your components/samples</li>
-                            </ul>
-                        </section>
+
         
                 <section data-markdown>
                   <script type="text/template">
-                    ### Install latest istio
+                    ### Download the Istio distribution
         
+                    We'll be using a 1.0-snapshot of Istio.
+
+                    Download from http://bit.ly/2L1kGau
         
-        
+                    Example:
                     ```
-                    $  cd istio/install
-                    (istio/install)$  curl -L https://git.io/getLatestIstio | sh -
+                    ($BASE/istio/dist/)
+                    $  curl -L -O https://storage.googleapis.com/istio-release-pipeline-data/daily-build/release-1.0-20180710-09-15/istio-release-1.0-20180710-09-15-osx.tar.gz
                     ```
                     Don't actually do the installation yet. We will take a piece-by-piece approach.
         
@@ -46,18 +43,7 @@
                 </section>
         
         
-                <section data-markdown>
-                  <script type="text/template">
-                    ### Official istio download
-                    The official installation does NOT include the component files we'll be reviewing. These have been broken out of the official Istio installation for learning purposes.
 
-
-                    You can also take a look at the official
-                    [installation instructions from istio.io](https://istio.io/docs/setup/kubernetes/quick-start.html).
-
-                    Again, DON'T install anything yet. We'll take it piece by piece.
-                  </script>
-                </section>
         
         
         
@@ -65,17 +51,26 @@
                                 <script type="text/template">
                                     ### Istio component deep dive
         
-                                    Navigate to `$BASE/istio/install/components`
-        
+                                    Navigate to the our Istio distribution 
+
                                     ```
-                                    $  cd istio/install/components
-                                    (istio/install/components)$  ls -l
+                                    
+                                    $  cd istio-release-1.0-20180710-09-15
+                                    ($BASE/istio/dist/istio-release-1.0-20180710-09-15/
+                                    $  ls -l install/kubernetes/helm/charts
         
-                                    -rw-r--r--  1 ceposta  staff   1.5K Dec  4 09:45 istio-ca.yaml
-                                    -rw-r--r--  1 ceposta  staff   2.7K Dec  4 09:40 istio-ingress.yaml
-                                    -rw-r--r--  1 ceposta  staff    18K Dec  4 09:45 istio-mixer.yaml
-                                    -rw-r--r--  1 ceposta  staff   152B Dec  4 09:40 istio-namespace.yaml
-                                    -rw-r--r--  1 ceposta  staff   9.4K Dec  4 14:48 istio-pilot.yaml
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 galley
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 gateways
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 grafana
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 ingress
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 kiali
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 mixer
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 pilot
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 prometheus
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 security
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 servicegraph
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 sidecarInjectorWebhook
+                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 tracing
                                     ```
                                 </script>
                             </section>
@@ -89,7 +84,8 @@
                                     Kubernetes:
         
                                     ```
-                                    $  kubectl apply -f istio-namespace.yaml
+                                    ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
+                                    $  kubectl create -f install/kubernetes/namespace.yaml
                                     ```
         
                                     OpenShift:
@@ -98,6 +94,22 @@
                                     $  oc adm policy add-scc-to-user anyuid -z default -n istio-system
                                     $  oc new-project istio-system
                                     ```
+        
+                                </script>
+                            </section>
+
+                            <section data-markdown>
+                                <script type="text/template">
+                                    ### Set up Helm (if you don't have it already)
+        
+                                    Kubernetes:
+        
+                                    ```
+                                    ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
+                                    $  kubectl create -f install/kubernetes/helm/helm-service-account.yaml
+                                    $  helm init --service-account tiller
+                                    ```
+
         
                                 </script>
                             </section>
