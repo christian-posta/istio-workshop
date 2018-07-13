@@ -1,0 +1,203 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: customer
+    version: v1
+  name: customer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: customer
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: JAVA_OPTIONS
+          value: -Xms128m -Xmx256m -Djava.net.preferIPv4Stack=true -Djava.security.egd=file:///dev/./urandom
+        image: ceposta/customer:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - localhost:8080/health
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 1
+        name: customer
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8778
+          name: jolokia
+          protocol: TCP
+        - containerPort: 9779
+          name: prometheus
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - localhost:8080/health
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 1
+        securityContext:
+          privileged: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer
+  labels:
+    app: customer    
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: customer
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: preference
+    version: v1
+  name: preference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: preference
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: preference
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: JAVA_OPTIONS
+          value: -Xms128m -Xmx256m -Djava.net.preferIPv4Stack=true -Djava.security.egd=file:///dev/./urandom
+        image: ceposta/preference:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - localhost:8080/health
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 1
+        name: preference
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8778
+          name: jolokia
+          protocol: TCP
+        - containerPort: 9779
+          name: prometheus
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - localhost:8080/health
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 1
+        securityContext:
+          privileged: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: preference
+  labels:
+    app: preference    
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: preference
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: recommendation
+    version: v1
+  name: recommendation-v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recommendation
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: recommendation
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: JAVA_OPTIONS
+          value: -Xmx256m
+        image: ceposta/recommendation:v1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - localhost:8080/health
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 1
+        name: recommendation
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8778
+          name: jolokia
+          protocol: TCP
+        - containerPort: 9779
+          name: prometheus
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - localhost:8080/health
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 1
+        securityContext:
+          privileged: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendation
+  labels:
+    app: recommendation    
+spec:
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: recommendation

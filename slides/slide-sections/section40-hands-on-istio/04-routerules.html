@@ -4,135 +4,175 @@
 													
 													Istio high-level model:
 
-													* Route rules
-													* Destination policy
-													* Egress rules
-													* Mixer rules
+													* VirtualServices
+													* DestinationRules
+													* ServiceEntries
 												</script>
-												<!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+												
                       </section>
         <section data-markdown>
           <script type="text/template">
-            ### Deploy bookinfo
+            ### Deploy example
 
-            Navigate to $BASE/istio and run the following:
-
-            ```
-            $  istioctl kube-inject -f bookinfo/bookinfo.yaml | kubectl apply -f -
-            ```
-
-            If on OpenShift, you'll need to allow some relaxed permissions because some of the services
-            write logs to `/opt/*`
+            Navigate to $BASE/istio/example and run the following:
 
             ```
-            $  oc adm policy add-scc-to-user anyuid -z default -n istio-samples
+            ($BASE/istio/example)
+            $  kubectl create -f <(istioctl kube-inject -f kube/simple-example.yml)
             ```
 
-            You can then use Kubernetes ingress or OpenShift routes to expose the `productpage` svc:
+            We will reuse the Istio Gateway from earlier, but let's route to `customer` svc instead of `httpbin`
 
             ```
-            $  ./bin/get-ingress-url.sh
+            ($BASE/istio/example)
+            $  istioctl delete virtualservice httpbin -n istio-samples
+            $  istioctl create -f istio/customer.yaml -n istio-samples
             ```
 
           </script>
-          <!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+          
         </section>
 
         <section data-markdown>
-					<script type="text/template">
-						### Route rules
+          <script type="text/template">
+            ### Verify installation
 
-						![service model](images/istio-svc-model.png)
+            ```
+            ($BASE/istio/example)
+            $  curl $(minikube ip):31380
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 1
+            ```
           </script>
-					<!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
-				</section>
+          
+        </section>
 
         <section data-markdown>
           <script type="text/template">
-            ### Force all traffic to v1
+            ### Deploy recommendation v2
+
+            In one pane, you can run the demo client which loops and calls the customer service:
 
             ```
-            apiVersion: config.istio.io/v1alpha2
-            kind: RouteRule
+            ($BASE/istio/example)
+            $  ./bin/poll_customer.sh
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 2
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 3
+            ```
+
+            In another pane, deploy recommendation v2:
+            
+            ```
+            ($BASE/istio/example)
+            $  kubectl create -f <(istioctl kube-inject -f kube/recommendation-v2-deployment.yml)
+            ```
+
+          </script>
+          
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Default Kubernetes load balancing
+
+            From the consumer you should see default Kubernetes load balancing:
+
+            ```
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 11
+            customer => preference => recommendation v2 from 'c4ccf7fb6-j5lth': 1
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 12
+            customer => preference => recommendation v2 from 'c4ccf7fb6-j5lth': 2
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 13
+            customer => preference => recommendation v2 from 'c4ccf7fb6-j5lth': 3
+            ```
+
+          </script>
+          
+        </section>        
+
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Force all traffic to v1 with virtual service
+
+            ```
+            apiVersion: networking.istio.io/v1alpha3
+            kind: VirtualService
             metadata:
-              name: productpage-default
+              name: recommendation
             spec:
-            ## Used by services inside the Kubernetes cluster
-              destination:
-                name: productpage
-              precedence: 1
-              route:
-              - labels:
-                  version: v1
+              hosts:
+              - recommendation
+              http:
+              - route:
+                - destination:
+                    host: recommendation
+                    subset: version-v1
+                  weight: 100
             ```
 
           </script>
-          <!-- https://istio.io/docs/concepts/traffic-management/rules-configuration.html -->
+          
         </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Declare subsets with destination rule 
+
+            ```
+            apiVersion: networking.istio.io/v1alpha3
+            kind: DestinationRule
+            metadata:
+              name: recommendation
+            spec:
+              host: recommendation
+              subsets:
+              - name: version-v1
+                labels:
+                  version: v1
+              - name: version-v2
+                labels:
+                  version: v2
+            ```
+
+          </script>
+          
+        </section>
+
+
 
         <section data-markdown>
           <script type="text/template">
             ### Force all traffic to v1
 
-
             ```
-            $  istioctl create -f bookinfo/route-rules/route-rule-all-v1.yaml -n istio-samples
-
-            Created config route-rule//productpage-default at revision 420820
-            Created config route-rule//reviews-default at revision 420821
-            Created config route-rule//ratings-default at revision 420822
-            Created config route-rule//details-default at revision 420823
+            ($BASE/istio/example)
+            $  istioctl create -f istio/recommendation-service-all-v1.yml -n istio-samples
+            Created config virtual-service/istio-samples/recommendation at revision 29717
+            Created config destination-rule/istio-samples/recommendation at revision 29718
             ```
 
-            Note the `istioctl` command is not namespace aware -- need to be explicit!
+            All traffic should no be going to only recommendation v1
 
           </script>
         </section>
 
         <section data-markdown>
           <script type="text/template">
-            ### Check routing rules:
+            ### Canary release with weighted traffic routing
 
             ```
-            $  # this gets all route rules across namespaces
-            $  istioctl get routerules
-            $  # can use plain kubectl also (namespace specific)
-            $  kubectl get routerules
-
-            ```
-
-          </script>
-        </section>
-
-        <section data-markdown>
-          <script type="text/template">
-            ### Deploy reviews v2
-
-            ```
-            $  istioctl kube-inject -f bookinfo/reviews-deployment-v2.yaml \
-            | kubectl apply -f -
-
-            deployment "reviews-v2" created
+            ($BASE/istio/example)
+            $  istioctl replace -f istio/recommendation-service-v1-v2-70-30.yml 
+            Updated config virtual-service/istio-samples/recommendation to revision 30024
 
             ```
 
-            Try hitting the reviews API (substitute for your ingress endpoint or OpenShift Route)
+            Note: we're using `replace` here to update the existing configuration.
+
+            Additional exercise... check the Envoy configs:
 
             ```
-            $  curl 192.168.64.34:31250/api/v1/products/0/reviews
-            {
-              "id": "0",
-              "reviews": [
-                {
-                  "reviewer": "Reviewer1",
-                  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"
-                },
-                {
-                  "reviewer": "Reviewer2",
-                  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare."
-                }
-              ]
-            }
+            $  istioctl1 proxy-config routes preference-6fb9ddd595-nvl92  -o json
             ```
 
           </script>
@@ -140,109 +180,233 @@
 
         <section data-markdown>
           <script type="text/template">
-            ### Dark launch reviews v2
+            ### Fault injection
+
+            Let's inject `503` errors every once in a while when calling `recommendation` to simulate network failures
 
             ```
-            $  istioctl create -n istio-samples -f \
-            bookinfo/route-rules/route-rule-reviews-dark-v2.yaml
-
-            Updated config route-rule/istio-samples/reviews-test-v2 to revision 424459
-
-            ```
-
-            Try hitting the reviews API and pass in a cookie param:
-
-            ```
-            $  curl --cookie "user=jason" 192.168.64.34:31250/api/v1/products/0/reviews
-            {
-              "id": "0",
-              "reviews": [
-                {
-                  "rating": { "color": "black", "stars": 5 },
-                  "reviewer": "Reviewer1",
-                  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"
-                },
-                {
-                  "rating": { "color": "black", "stars": 4 },
-                  "reviewer": "Reviewer2",
-                  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare."
-                }
-              ]
-            }
+            apiVersion: networking.istio.io/v1alpha3
+            kind: VirtualService
+            metadata:
+              name: recommendation
+            spec:
+              hosts:
+              - recommendation
+              http:
+              - route:
+                - destination:
+                    host: recommendation
+                    subset: version-v1
+                  weight: 70
+                - destination:
+                    host: recommendation
+                    subset: version-v2
+                  weight: 30
+                fault:
+                  abort:
+                    percent: 20
+                    httpStatus: 503 
+                        
             ```
 
           </script>
         </section>
         <section data-markdown>
           <script type="text/template">
-            ### Where do these routing rules live?
-
-            In Pilot RDS services. Log into the `productpage` pod's proxy and
-            let's take a look at the routes;
+            ### Fault injection
 
 
-            ```
-            $  kubectl exec -it productpage-v1-3581918468-b9lws -c istio-proxy sh
-            $>  curl localhost:15000/routes
+            Replace the virtual service: 
 
             ```
-            In the response we should see an entry for:
-
-            ```
-            {
-              "name": "reviews.istio-samples.svc.cluster.local|http",
-              "domains": [
-                "reviews:9080",
-                "reviews",
-                "reviews.istio-samples:9080",
-                "reviews.istio-samples",
-                "reviews.istio-samples.svc:9080",
-                "reviews.istio-samples.svc",
-                "reviews.istio-samples.svc.cluster:9080",
-                "reviews.istio-samples.svc.cluster",
-                "reviews.istio-samples.svc.cluster.local:9080",
-                "reviews.istio-samples.svc.cluster.local",
-                "172.30.160.190:9080",
-                "172.30.160.190"
-              ],
-              "routes": [
-                {
-                  "match": {
-                    "prefix": "/",
-                    "headers": [
-                      {
-                        "name": "cookie",
-                        "value": "^(.*?;)?(user=jason)(;.*)?$",
-                        "regex": true
-                      }
-                    ]
-                  },
-                  "route": {
-                    "cluster": "out.reviews.istio-samples.svc.cluster.local|http|version=v2",
-                    "timeout": "0s"
-                  },
-                  "decorator": {
-                    "operation": "reviews-test-v2"
-                  }
-                },
-                {
-                  "match": {
-                    "prefix": "/"
-                  },
-                  "route": {
-                    "cluster": "out.reviews.istio-samples.svc.cluster.local|http|version=v1",
-                    "timeout": "0s"
-                  },
-                  "decorator": {
-                    "operation": "reviews-default"
-                  }
-                }
-              ]
-            }
+            ($BASE/istio/example)
+            $  istioctl replace -f istio/recommendation-service-fault.yml -n istio-samples
             ```
 
-            Note the routing based on Cookie params.
+          </script>
+        </section>        
 
+        <section data-markdown>
+          <script type="text/template">
+            ### Retry
+
+            On network issues, let's just retry the request. We'll use Istio to implement automatic retries:
+
+            ```
+            apiVersion: networking.istio.io/v1alpha3
+            kind: VirtualService
+            metadata:
+              name: preference
+            spec:
+              hosts:
+              - preference
+              http:
+              - route:
+                - destination:
+                    host: preference
+                retries:
+                  attempts: 3
+                  perTryTimeout: 1s
+
+            ```
 
           </script>
         </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Retry
+
+            ```
+            ($BASE/istio/example)
+            $  istioctl create -f istio/preference-service-retry.yml -n istio-samples
+            ```
+
+            We should see traffic smooth out with successes.
+
+          </script>
+        </section>     
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Retry cleanup
+
+            ```
+            ($BASE/istio/example)
+            $  istioctl delete virtualservice preference -n istio-samples
+            $  istioctl replace -f istio/recommendation-service-v1-v2-70-30.yml -n istio-samples
+            ```
+
+            We should see traffic smooth out with successes.
+
+          </script>
+        </section>             
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Timeout
+
+            Let's deploy a new version of recommendation v2 service that introduces a delay:
+
+            ```
+            $  kubectl create -f kube/recommendation-v2-delay-deployment.yml -n istio-samples
+            ```
+            
+            You should see periodically the client polling hang for up to 3s
+          </script>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Timeout
+
+            Using Istio, let's enforce timeouts when calling the recommendation service:
+
+            ```
+            apiVersion: networking.istio.io/v1alpha3
+            kind: VirtualService
+            metadata:
+              name: recommendation
+            spec:
+              hosts:
+              - recommendation
+              http:
+              - route:
+                - destination:
+                    host: recommendation
+                    subset: version-v1
+                  weight: 70
+                - destination:
+                    host: recommendation
+                    subset: version-v2
+                  weight: 30
+                timeout: 1s
+            ```
+            
+          </script>
+        </section>     
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Timeout
+
+            Using Istio, let's enforce timeouts when calling the recommendation service:
+
+            ```
+            ($BASE/istio/example)
+            $  istioctl replace -f istio/recommendation-service-timeout.yml -n istio-samples
+            ```
+            Now we should see calls complete in 1s or less, but some are getting timed out by Istio:
+
+            ```
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 734
+            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 735
+            customer => 503 preference => 504 upstream request timeout
+            customer => preference => recommendation v2 from 'c4ccf7fb6-j5lth': 113
+            ```
+
+          </script>
+        </section>             
+
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Circuit breaking / outlier detection
+
+            Another thing we can do for misbehaving clients is circuit breaking / outlier detection. Let's use Istio DestinationRules to declare those intentions
+
+            ```
+            apiVersion: networking.istio.io/v1alpha3
+            kind: DestinationRule
+            metadata:
+              name: recommendation
+            spec:
+              host: recommendation
+              trafficPolicy:
+                outlierDetection:
+                  http:
+                    consecutiveErrors: 1
+                    baseEjectionTime: 5s
+                    interval: 5s
+                    maxEjectionPercent: 100
+              subsets:
+              - name: version-v1
+                labels:
+                  version: v1
+              - name: version-v2
+                labels:
+                  version: v2
+            ```
+
+          </script>
+        </section>
+
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Circuit breaking / outlier detection
+
+            Another thing we can do for misbehaving clients is circuit breaking / outlier detection. Let's use Istio DestinationRules to declare those intentions
+
+            ```
+            ($BASE/istio/example)
+            $  istioctl replace -f istio/recommendation-destinationrule-cb.yml -n istio-samples
+            ```
+            We should see fewer of those 504/timeouts because we eject that bad-behaving host for a period of time.
+            But they still do show up periodically. What can we do?
+          </script>
+        </section>        
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Retry!
+
+
+            ```
+            ($BASE/istio/example)
+            $  istioctl replace -f istio/recommendation-service-retry.yml -n istio-samples
+            ```
+            We should see fewer of those 504/timeouts because we eject that bad-behaving host for a period of time.
+            But they still do show up periodically. What can we do?
+          </script>
+        </section>           
