@@ -5,14 +5,17 @@
             We need to get traffic into our cluster. We'll use Istio Gateway to do this. Note, we'll be *upgrading* our installation of `istio`
 
             ```
-            ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
-            $  helm upgrade --install --force istio install/kubernetes/helm/istio --values ../values-install-gateway.yaml --namespace istio-system
+            ($BASE/istio/istio-release-1.0-20180710-09-15/)
+            $  helm upgrade --install --force \
+            istio install/kubernetes/helm/istio \
+            --values ../values-install-istio-gateway.yaml \
+            --namespace istio-system
             ```
 
             Note, we could also use the convenience scripts from the source code of this workshop:
 
             ```
-            ($BASE/istio/dist/)
+            ($BASE/istio/)
             $  ./helm-upgrade.sh istio-gateway
             ```
 
@@ -26,7 +29,6 @@
           $  kubectl get pods -n istio-system
           NAME                              READY  STATUS   RESTARTS  AGE
           istio-citadel-85fcc767fc-x57x4    1/1    Running  0         47m
-          istio-egressgateway-7958949b56    1/1    Running  0         4s
           istio-ingressgateway-59849784d6   1/1    Running  0         4s
           istio-pilot-6db8d59464-xjl4v      2/2    Running  0         47m
           ```
@@ -109,10 +111,13 @@
         ### Ingress is just a simple Istio proxy
 
         ```
-        $  istioctl proxy-config bootstrap --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
-        $  istioctl proxy-config listener --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
+        $  istioctl proxy-config bootstrap \
+        --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
+        $  istioctl proxy-config listener \
+        --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
         Error: no listeners found
-        $  istioctl proxy-config listener --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
+        $  istioctl proxy-config route \
+        --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
         Error: config dump has no route dump
         ```
       </script>
@@ -208,7 +213,7 @@
       ### Let's create an definition for this Gateway
 
       ```
-      ($BASE/istio/dist/)
+      ($BASE/istio/)
       $  istioctl create -f gateway/default-gateway.yaml 
       Created config gateway/istio-samples/default-gateway at revision 7457
       ```
@@ -229,17 +234,19 @@
   <section data-markdown>
     <script type="text/template">
       ### Let's create an definition for this Gateway
-      
+
       Do we have any routes though?
 
-      ```
-      $ istioctl proxy-config routes --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
-      NOTE: This output only contains routes loaded via RDS.
-      NAME        VIRTUAL HOSTS
-      http.80     1
-      ```
 
-      What!? What is this route!?
+      ```
+      $  istioctl proxy-config routes \
+      --namespace istio-system \
+      istio-ingressgateway-59849784d6-bxs7t  
+      ```
+      
+      What!? What is this route!?      
+
+
     </script>
   </section>
 
@@ -316,7 +323,7 @@
       ### Let's create an definition for this VirtualService
 
       ```
-      ($BASE/istio/dist/)
+      ($BASE/istio/)
       $  istioctl create -f virtualservices/httpbin.yaml 
       Created config virtual-service/istio-samples/httpbin at revision 9999
       ```

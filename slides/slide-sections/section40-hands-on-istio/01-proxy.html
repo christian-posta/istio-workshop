@@ -7,6 +7,7 @@
             httpbin pod name for your pod name):
 
             ```
+            $  kubectl get pod 
             $  kubectl exec -it httpbin-865958259-k8qfd -c istio-proxy  sh
 
             (proxy)$  ps aux
@@ -76,9 +77,12 @@
             Examples:
 
             ```
-            $  istioctl proxy-config bootstrap httpbin-85899d9474-rq47q
-            $  istioctl proxy-config listeners httpbin-85899d9474-rq47q
-            $  istioctl proxy-config listeners httpbin-85899d9474-rq47q -o json
+            $  istioctl proxy-config bootstrap \
+            httpbin-85899d9474-rq47q -n istio-samples
+            $  istioctl proxy-config listeners \
+            httpbin-85899d9474-rq47q -n istio-samples
+            $  istioctl proxy-config listeners \
+            httpbin-85899d9474-rq47q -o json -n istio-samples
             ```
 
         </script>

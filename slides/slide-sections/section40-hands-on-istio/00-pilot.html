@@ -5,14 +5,16 @@
             Let's take a look at installing Pilot. We'll use helm to cherry pick the Istio Pilot:
 
             ```
-            ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
-            $  helm install install/kubernetes/helm/istio --debug --dry-run --values ../values-install-istio-pilot.yaml --namespace istio-system --name istio
+            ($BASE/istio/istio-release-1.0-20180710-09-15/)
+            $  helm install install/kubernetes/helm/istio --debug \ 
+            --dry-run --values ../values-install-istio-pilot.yaml \
+            --namespace istio-system --name istio
             ```
 
             Note, we could also use the convenience scripts from the source code of this workshop:
 
             ```
-            ($BASE/istio/dist/)
+            ($BASE/istio/)
             $  ./helm-debug.sh istio-pilot
             ```
 
@@ -397,14 +399,16 @@
             Let's install it...
 
             ```
-            ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
-            $  helm install install/kubernetes/helm/istio --values ../values-install-istio-pilot.yaml --namespace istio-system --name istio
+            ($BASE/istio/istio-release-1.0-20180710-09-15/)
+            $  helm install --replace install/kubernetes/helm/istio \
+            --values ../values-install-istio-pilot.yaml \
+            --namespace istio-system --name istio
             ```
 
             Note, we could also use the convenience scripts from the source code of this workshop:
 
             ```
-            ($BASE/istio/dist/)
+            ($BASE/istio/)
             $  ./helm-install.sh istio-pilot
             ```
 
@@ -434,7 +438,7 @@
             ```
             $  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
             -n istio-system --command \
-            -- curl -vvvv 'http://istio-pilot:15003/v1/registration'
+            -- curl -vvvv 'http://istio-pilot.istio-system:15003/v1/registration'
             ```
 
             Returns services and service endpoints
@@ -457,10 +461,10 @@
         <script type="text/template">
             ### Let's take a look at a service
 
-            Navigate to `$BASE/istio/dist/istio-release-1.0-20180710-09-15/samples/httpbin`
+            Navigate to `$BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin`
 
             ```
-            ($BASE/istio/dist/istio-release-1.0-20180710-09-15/samples/httpbin/)
+            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
             $  cat httpbin.yaml
 
             apiVersion: v1
@@ -504,7 +508,7 @@
             ### Let's decorate our service with sidecar
 
             ```
-            ($BASE/istio/dist/istio-release-1.0-20180710-09-15/samples/httpbin/)
+            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
             $	 ../../bin/istioctl kube-inject -f httpbin.yaml
 
             apiVersion: extensions/v1beta1
@@ -631,6 +635,15 @@
     </section>
 
     <section data-markdown>
+      <script type="text/template">
+          ### Set up path
+
+          For the rest of the `istioctl` commands, it might be a good idea to put this binary on your path.
+
+      </script>
+  </section>    
+
+    <section data-markdown>
         <script type="text/template">
             ### Creating our samples namespace
 
@@ -660,8 +673,8 @@
             Let's deploy the httpbin service with Istio enabled!
 
             ```
-            ($BASE/istio/dist/istio-release-1.0-20180710-09-15/samples/httpbin/)
-            $  kubectl create -f <(../../bin/istioctl kube-inject -f httpbin.yaml)
+            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
+            $  kubectl create -f <(istioctl kube-inject -f httpbin.yaml)
             ```
 
             Wait until pod comes up:
@@ -681,7 +694,7 @@
             ```
             $  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
             -n istio-system --command -- \
-            curl -s 'http://istio-pilot:15003/v1/registration/' 
+            curl -s 'http://istio-pilot.istio-system:15003/v1/registration/' 
 
             {
               "hosts": [

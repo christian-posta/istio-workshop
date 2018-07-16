@@ -5,14 +5,17 @@
       Installing the telemetry and policy components (Istio Mixer)
 
       ```
-      ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
-      $  helm upgrade --install --force istio install/kubernetes/helm/istio --values ../values-install-istio-mixer.yaml --namespace istio-system
+      ($BASE/istio/istio-release-1.0-20180710-09-15/)
+      $  helm upgrade --install --force \
+      istio install/kubernetes/helm/istio \
+      --values ../values-install-istio-mixer.yaml \
+      --namespace istio-system
       ```
 
       Note, we could also use the convenience scripts from the source code of this workshop:
 
       ```
-      ($BASE/istio/dist/)
+      ($BASE/istio/)
       $  ./helm-upgrade.sh istio-mixer
       ```
 
@@ -28,18 +31,32 @@
 
           ```
           $   kubectl -n istio-system get po
-          NAME                                       READY     STATUS    RESTARTS   AGE
-          istio-citadel-85fcc767fc-vkzx4             1/1       Running   0          1h
-          istio-ingressgateway-84bb684f68-gvd4s      1/1       Running   0          2m
-          istio-pilot-6db8d59464-tnk5j               2/2       Running   0          1h
-          istio-policy-7b978cf7df-xfgpn              2/2       Running   0          1h
-          istio-statsd-prom-bridge-59b45fd6d-q74sd   1/1       Running   0          5m
-          istio-telemetry-7dfcc797b6-z5rjk           2/2       Running   0          1h
+          NAME                                 READY     STATUS    RESTARTS   AGE
+          istio-citadel-85fcc767fc-vkzx4       1/1       Running   0          1h
+          istio-ingressgateway-84bb684f68      1/1       Running   0          2m
+          istio-pilot-6db8d59464-tnk5j         2/2       Running   0          1h
+          istio-policy-7b978cf7df-xfgpn        2/2       Running   0          1h
+          istio-statsd-prom-bridge-59b45fd6d   1/1       Running   0          5m
+          istio-telemetry-7dfcc797b6-z5rjk     2/2       Running   0          1h
 
           ```
 
         </script>
         </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Redeploy httpbin
+
+            We want our `httpbin` service to know that Mixer is deployed no, so let's redeploy `httpbin`
+
+            ```
+            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
+            $  kubectl replace -f <(istioctl kube-inject -f httpbin.yaml)
+            ```
+
+          </script>
+      </section>        
 
 
         <section data-markdown>
@@ -50,7 +67,8 @@
             to get an idea what calls its seeing:
 
             ```
-            $  kubectl  port-forward -n istio-system istio-telemetry-7dfcc797b6-z5rjk  9093
+            $  kubectl  port-forward -n istio-system \
+            istio-telemetry-7dfcc797b6-z5rjk  9093
 
             ```
 
@@ -90,7 +108,8 @@
 
             First open the Mixer grpc port:
             ```
-            $  kubectl  port-forward -n istio-telemetry-7dfcc797b6-z5rjk  9091
+            $  kubectl  port-forward -n istio-system \
+            istio-telemetry-7dfcc797b6-z5rjk  9091
             ```
 
             Let's use the `mixc` cli to send a report:

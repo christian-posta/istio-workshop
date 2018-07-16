@@ -34,7 +34,7 @@
         
                     Example:
                     ```
-                    ($BASE/istio/dist/)
+                    ($BASE/istio/)
                     $  curl -L -O https://storage.googleapis.com/istio-release-pipeline-data/daily-build/release-1.0-20180710-09-15/istio-release-1.0-20180710-09-15-osx.tar.gz
                     ```
                     Don't actually do the installation yet. We will take a piece-by-piece approach.
@@ -56,8 +56,8 @@
                                     ```
                                     
                                     $  cd istio-release-1.0-20180710-09-15
-                                    ($BASE/istio/dist/istio-release-1.0-20180710-09-15/
-                                    $  ls -l install/kubernetes/helm/charts
+                                    ($BASE/istio/istio-release-1.0-20180710-09-15/
+                                    $  ls -l install/kubernetes/helm/istio/charts
         
                                     drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 galley
                                     drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 gateways
@@ -84,7 +84,7 @@
                                     Kubernetes:
         
                                     ```
-                                    ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
+                                    ($BASE/istio/istio-release-1.0-20180710-09-15/)
                                     $  kubectl create -f install/kubernetes/namespace.yaml
                                     ```
         
@@ -105,7 +105,7 @@
                                     Kubernetes:
         
                                     ```
-                                    ($BASE/istio/dist/istio-release-1.0-20180710-09-15/)
+                                    ($BASE/istio/istio-release-1.0-20180710-09-15/)
                                     $  kubectl create -f install/kubernetes/helm/helm-service-account.yaml
                                     $  helm init --service-account tiller
                                     ```

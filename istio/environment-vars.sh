@@ -1,0 +1,1 @@
+export ISTIO_DIST=${ISTIO_DIST:-./istio-release-1.0-20180710-09-15}
