@@ -23,14 +23,6 @@ spec:
           value: -Xms128m -Xmx256m -Djava.net.preferIPv4Stack=true -Djava.security.egd=file:///dev/./urandom
         image: ceposta/customer:latest
         imagePullPolicy: IfNotPresent
-        livenessProbe:
-          exec:
-            command:
-            - curl
-            - localhost:8080/health
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 1
         name: customer
         ports:
         - containerPort: 8080
@@ -42,11 +34,6 @@ spec:
         - containerPort: 9779
           name: prometheus
           protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - curl
-            - localhost:8080/health
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 1
@@ -91,14 +78,6 @@ spec:
           value: -Xms128m -Xmx256m -Djava.net.preferIPv4Stack=true -Djava.security.egd=file:///dev/./urandom
         image: ceposta/preference:latest
         imagePullPolicy: IfNotPresent
-        livenessProbe:
-          exec:
-            command:
-            - curl
-            - localhost:8080/health
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 1
         name: preference
         ports:
         - containerPort: 8080
@@ -110,11 +89,6 @@ spec:
         - containerPort: 9779
           name: prometheus
           protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - curl
-            - localhost:8080/health
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 1
@@ -159,14 +133,6 @@ spec:
           value: -Xmx256m
         image: ceposta/recommendation:v1
         imagePullPolicy: IfNotPresent
-        livenessProbe:
-          exec:
-            command:
-            - curl
-            - localhost:8080/health
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 1
         name: recommendation
         ports:
         - containerPort: 8080
@@ -178,14 +144,6 @@ spec:
         - containerPort: 9779
           name: prometheus
           protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - curl
-            - localhost:8080/health
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 1
         securityContext:
           privileged: false
 ---

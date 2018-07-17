@@ -1,0 +1,14 @@
+apiVersion: "authentication.istio.io/v1alpha1"
+kind: "Policy"
+metadata:
+  name: "customer-jwt-policy"
+spec:
+  targets:
+  - name: customer
+  peers:
+  - mtls:
+  origins:
+  - jwt:
+      issuer: test-jwt-sa@istio-test-jwt.iam.gserviceaccount.com
+      jwksUri: https://www.googleapis.com/service_accounts/v1/jwk/test-jwt-sa@istio-test-jwt.iam.gserviceaccount.com
+  principalBinding: USE_ORIGIN
