@@ -1,0 +1,12 @@
+apiVersion: "authentication.istio.io/v1alpha1"
+kind: "Policy"
+metadata:
+  name: "httpbin-jwt-policy"
+spec:
+  targets:
+  - name: httpbin
+  origins:
+  - jwt:
+      issuer: http://keycloak.istio-samples:8080/auth/realms/istio
+      jwksUri: http://keycloak.istio-samples:8080/auth/realms/istio/protocol/openid-connect/certs
+  principalBinding: USE_ORIGIN

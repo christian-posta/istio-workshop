@@ -12,34 +12,39 @@
 
 
 SOURCE_DIR=$PWD
+URL=$(k get pod -n istio-system -l istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'):$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
+
+#URL=oscondemo
 
 desc "We can call customer:"
 read -s 
-tmux send-keys -t 1 "curl http://oscondemo" C-m
+tmux send-keys -t 1 "curl $URL" C-m
 read -s
 
 desc "Let's add a new policy on customer to require a JWT auth token"
-run "cat $(relative istio/customer-jwt-policy.yaml)"
+run "cat $(relative istio/customer-jwt-policy-keycloak.yaml)"
 
 desc "Let's create this policy"
-run "istioctl create -f $(relative istio/customer-jwt-policy.yaml)"
+run "istioctl create -f $(relative istio/customer-jwt-policy-keycloak.yaml)"
 
 desc "We should wait a few moments for the changes to propagate"
 read -s
 
 desc "Now let's try call the customer service again"
-tmux send-keys -t 1 "curl -vvvv http://oscondemo" C-m
+tmux send-keys -t 1 "curl -vvvv $URL" C-m
 
 desc "Ouch! we got denied!"
 read -s 
 desc "Let's call with a JWT token"
-pushd ~/go/src/istio.io/istio/security/tools/jwt
-TOKEN=$(python ./sa-jwt.py  -iss test-jwt-sa@istio-test-jwt.iam.gserviceaccount.com -aud foo,bar ~/Downloads/istio-test-jwt-b4a756530705.json)
+desc "We'll ask keycloak for a token:"
+TOKEN=$(kubectl run -i --rm --restart=Never tokenizer --image=tutum/curl --command -- curl -s -X POST 'http://keycloak.istio-samples:8080/auth/realms/istio/protocol/openid-connect/token' -H "Content-Type: application/x-www-form-urlencoded" -d 'username=demo&password=demo&grant_type=password&client_id=httpbin'  | jq .access_token | sed 's/\"//g')
 echo $TOKEN
-popd
+
+read -s
+
 
 desc "Now let's try calling again with the token!"
 read -s 
 
-tmux send-keys -t 1 "curl -vvvv --header \"Authorization: Bearer $TOKEN\" http://oscondemo" C-m
+tmux send-keys -t 1 "curl -vvvv --header \"Authorization: Bearer $TOKEN\" $URL" C-m
 

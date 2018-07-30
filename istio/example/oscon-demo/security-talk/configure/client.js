@@ -35,8 +35,9 @@ request.post(
                         protocol: "openid-connect",
                         secret: "0de7b727-8af3-43cb-84da-988d54dffc01",
                         clientAuthenticatorType: "client-secret",
-                        "bearerOnly": true,
-                        "publicClient": false
+                        publicClient: true,
+                        webOrigins: ["*"],
+                        redirectUris: ["*"]
                     }
                 }, function (err, resp, body) {
                     console.log("register client result: " + resp.statusCode + " " + resp.statusMessage + " " + JSON.stringify(body));

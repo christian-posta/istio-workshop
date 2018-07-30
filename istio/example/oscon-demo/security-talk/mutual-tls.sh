@@ -15,7 +15,7 @@ SOURCE_DIR=$PWD
 
 desc "Let's capture traffic from customer->preference with tcpdump"
 desc "We'll figure out the IP of the preference pod and watch traffic to/from there"
-run "kubectl get pod -o wide"
+run "kubectl get pod"
 
 
 PREF_POD_IP=$(kubectl get pod -o wide | grep pref | awk '{ print $6 }')

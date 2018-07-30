@@ -1,1 +1,1 @@
-export ISTIO_DIST=${ISTIO_DIST:-./istio-release-1.0-20180716-16-37}
+export ISTIO_DIST=${ISTIO_DIST:-./istio-1.0.0-snapshot.1}
