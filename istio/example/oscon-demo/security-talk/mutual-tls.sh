@@ -33,8 +33,9 @@ read -s
 backtotop
 
 desc "let's capture traffic"
-CUSTOMER_POD=$(kubectl get pod | grep cust | awk '{ print $1}' )
+CUSTOMER_POD=$(kubectl get pod | grep -i running|  grep cust | awk '{ print $1}' )
 kubectl exec $CUSTOMER_POD -c istio-proxy -- sh -c 'rm /opt/output*.* > /dev/null 2>&1'
+tmux send-keys -t 1 "sh $(relative bin/get-gateway-url.sh)" C-m
 run "kubectl exec -it $CUSTOMER_POD  -c istio-proxy -- sh -c \"sudo tcpdump -i eth0 '((tcp) and (net $PREF_POD_IP))' -w /opt/output.pcap\""
 
 

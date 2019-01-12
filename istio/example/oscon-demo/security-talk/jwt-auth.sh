@@ -12,9 +12,11 @@
 
 
 SOURCE_DIR=$PWD
-URL=$(k get pod -n istio-system -l istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'):$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
-
+#URL=$(k get pod -n istio-system -l istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'):$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}')
+URL=$(kubectl get svc -n istio-system | grep ingressgateway | awk '{print $4}')
 #URL=oscondemo
+echo "URL to use $URL"
+read -s
 
 desc "We can call customer:"
 read -s 
@@ -25,7 +27,7 @@ desc "Let's add a new policy on customer to require a JWT auth token"
 run "cat $(relative istio/customer-jwt-policy-keycloak.yaml)"
 
 desc "Let's create this policy"
-run "istioctl create -f $(relative istio/customer-jwt-policy-keycloak.yaml)"
+run "kubectl create -f $(relative istio/customer-jwt-policy-keycloak.yaml)"
 
 desc "We should wait a few moments for the changes to propagate"
 read -s
