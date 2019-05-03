@@ -27,7 +27,7 @@
                             <section>
                                 <h3>Pull some images</h3>
                                 <blockquote>
-                                    docker pull envoyproxy/envoy:v1.7.0
+                                    docker pull envoyproxy/envoy:v1.10.0
                                 </blockquote>
                                 <blockquote>
                                     docker pull tutum/curl
@@ -69,13 +69,13 @@
                                     ### Checkout Envoy!
         
                                     ```
-                                    $  docker run -it --rm envoyproxy/envoy:v1.7.0 envoy --help
+                                    $  docker run -it --rm envoyproxy/envoy:v1.10.0 envoy --help
                                     ```
         
                                     ### Try running
         
                                     ```
-                                    $  docker run -it --rm envoyproxy/envoy:v1.7.0 envoy
+                                    $  docker run -it --rm envoyproxy/envoy:v1.10.0 envoy
         
                                     [2018-07-16 13:03:44.806][5][critical][main] source/server/server.cc:78] error initializing configuration '': unable to read file: 
                                     [2018-07-16 13:03:44.806][5][info][main] source/server/server.cc:437] exiting
@@ -123,31 +123,7 @@
         
                                     ```
                                     $  docker run -it --rm --name proxy --link httpbin \
-                                     -v $(pwd)/envoy/conf/simple.yaml:/etc/simple.yaml \
-                                     envoyproxy/envoy:v1.7.0 envoy -c /etc/simple.yaml
-
-        
-                                     [2018-07-09 20:04:08.866][6][info][config] source/server/configuration_impl.cc:116] 
-                                     loading stats sink configuration
-                                     [2018-07-09 20:04:08.866][6][info][main] source/server/server.cc:378] 
-                                     all clusters initialized. initializing init manager
-                                     [2018-07-09 20:04:08.866][6][info][config] source/server/listener_manager_impl.cc:781] 
-                                     all dependencies initialized. starting workers
-                                     [2018-07-09 20:04:08.867][6][info][main] source/server/server.cc:398] 
-                                     starting main dispatch loop
-                                    ```
-                                </script>
-                            </section>
-
-                            <section data-markdown>
-                                <script type="text/template">
-                                    ### Let's run with a configuration file
-
-                                    Alternatively, just run with pre-packaged configuration files:
-        
-                                    ```
-                                    $  docker run -it --rm --name proxy --link httpbin \
-                                    ceposta/envoy:v1.7.0 envoy -c /etc/envoy/simple.yaml
+                                    ceposta/envoy:v1.10.0 envoy -c /etc/envoy/simple.yaml
 
         
                                     [2018-07-09 20:04:08.866][6][info][config] source/server/configuration_impl.cc:116] 
@@ -160,8 +136,7 @@
                                     starting main dispatch loop
                                     ```
                                 </script>
-                            </section>                            
-        
+                            </section>
         
                             <section>
                                 <p>now we have a sample service and an envoy proxy configured to forward requests to it</p>
@@ -214,23 +189,7 @@
                                     ```
                                 </script>
                             </section>   
-                            
-                            <section data-markdown>
-                                <script type="text/template">
-                                    ### Let's run with a configuration file (timeout)
-        
-                                    ```
-                                    $  docker run -it --rm --name proxy --link httpbin \
-                                     -v $(pwd)/envoy/conf/simple_change_timeout.yaml:/etc/simple.yaml \
-                                     envoyproxy/envoy:v1.7.0 envoy -c /etc/simple.yaml
-                                    ```
-                                    
-                                    ```
-                                    $  docker run -it --rm --link proxy tutum/curl \
-                                    curl  -X GET http://proxy:15001/headers
-                                    ```
-                                </script>
-                            </section>                               
+                                                        
 
                             <section data-markdown>
                                 <script type="text/template">
@@ -238,7 +197,7 @@
         
                                     ```
                                     $  docker run -it --rm --name proxy --link httpbin \
-                                    ceposta/envoy:v1.7.0 envoy -c /etc/envoy/simple_change_timeout.yaml
+                                    ceposta/envoy:v1.10.0 envoy -c /etc/envoy/simple_change_timeout.yaml
                                     ```
                                     
                                     ```
@@ -255,8 +214,6 @@
                                     ### Admin stats
         
                                     Let's curl the admin stats API
-
-                                    NOTE: We'll have to change the location of the admin site to listen on 0.0.0.0
         
                                     ```
                                     $  docker run -it --rm --link proxy tutum/curl \
@@ -307,20 +264,11 @@
                             <section>
                                 <section data-markdown>
                                     <script type="text/template">
-                                        ### Refresh with new config
-        
-                                                
-                                        ```
-                                        $  docker run -it --rm --name proxy --link httpbin \
-                                        -v $(pwd)/envoy/conf/simple_retry.yaml:/etc/simple.yaml \
-                                        envoyproxy/envoy:v1.7.0 envoy -c /etc/simple.yaml
-                                        ```
-
-                                        or
+                                        ### Restart with new config
 
                                         ```
                                         $   docker run -it --rm --name proxy --link httpbin \
-                                        ceposta/envoy:v1.7.0 envoy -c /etc/envoy/simple_retry.yaml
+                                        ceposta/envoy:v1.10.0 envoy -c /etc/envoy/simple_retry.yaml
                                         ```
                                     </script>
                                 </section>

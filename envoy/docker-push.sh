@@ -1,0 +1,1 @@
+docker push ceposta/envoy:v1.10.0
