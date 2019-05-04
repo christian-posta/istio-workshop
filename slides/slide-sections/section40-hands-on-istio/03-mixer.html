@@ -2,26 +2,44 @@
   <script type="text/template">
       ### Istio Mixer
 
-      Installing the telemetry and policy components (Istio Mixer)
+      Generating the telemetry and policy components (Istio Mixer) with Helm
 
       ```
-      ($BASE/istio/istio-release-1.0-20180710-09-15/)
-      $  helm upgrade --install --force \
-      istio install/kubernetes/helm/istio \
-      --values ../values-install-istio-mixer.yaml \
-      --namespace istio-system
+      ($BASE/istio/istio-1.1.5/)
+      $  helm template install/kubernetes/helm/istio \
+      --name istio \
+      --namespace istio-system \
+      --set gateways.enabled=true \
+      --set security.enabled=true \
+      --set global.mtls.enabled=false \
+      --set galley.enabled=false \
+      --set global.useMCP=false \
+      --set sidecarInjectorWebhook.enabled=true \
+      --set mixer.enabled=true \
+      --set mixer.policy.enabled=true \
+      --set mixer.telemetry.enabled=true \
+      --set prometheus.enabled=true \
+      --set grafana.enabled=false \
+      --set tracing.enabled=false \
+      --set kiali.enabled=false \
+      --set pilot.sidecar=true 
       ```
 
-      Note, we could also use the convenience scripts from the source code of this workshop:
-
-      ```
-      ($BASE/istio/)
-      $  ./helm-upgrade.sh istio-mixer
-      ```
-
-      Note, helm-2.9.1 has a major bug in upgrades; we'll traverse this in the live workshop.
   </script>
 </section>
+<section data-markdown>
+  <script type="text/template">
+    ### Istio Mixer
+
+    Installing from our components file:
+
+    ```
+      ($BASE/istio/)
+      $  kubectl apply -f install/50-istio-almost-full.yaml 
+      ```
+  </script>
+</section>
+
 
       <section data-markdown>
         <script type="text/template">
@@ -32,31 +50,18 @@
           ```
           $   kubectl -n istio-system get po
           NAME                                 READY     STATUS    RESTARTS   AGE
-          istio-citadel-85fcc767fc-vkzx4       1/1       Running   0          1h
-          istio-ingressgateway-84bb684f68      1/1       Running   0          2m
-          istio-pilot-6db8d59464-tnk5j         2/2       Running   0          1h
-          istio-policy-7b978cf7df-xfgpn        2/2       Running   0          1h
-          istio-statsd-prom-bridge-59b45fd6d   1/1       Running   0          5m
-          istio-telemetry-7dfcc797b6-z5rjk     2/2       Running   0          1h
+          istio-citadel-7579f8fbb9-jf5fh            1/1     Running   0          36m
+          istio-ingressgateway-5fbcf4488f-qcqkk     1/1     Running   0          36m
+          istio-pilot-df78f86cb-xf4ht               2/2     Running   0          36m
+          istio-policy-55fc5d8c55-h4btf             2/2     Running   0          36m
+          istio-sidecar-injector-57f445c786-spf8z   1/1     Running   0          36m
+          istio-telemetry-778c4c657c-fk4nf          2/2     Running   0          36m
+          prometheus-66c9f5694-2sg4p                1/1     Running   0          36m
 
           ```
 
         </script>
-        </section>
-
-        <section data-markdown>
-          <script type="text/template">
-            ### Redeploy httpbin
-
-            We want our `httpbin` service to know that Mixer is deployed no, so let's redeploy `httpbin`
-
-            ```
-            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
-            $  kubectl replace -f <(istioctl kube-inject -f httpbin.yaml)
-            ```
-
-          </script>
-      </section>        
+        </section>    
 
 
         <section data-markdown>
@@ -67,14 +72,13 @@
             to get an idea what calls its seeing:
 
             ```
-            $  kubectl  port-forward -n istio-system \
-            istio-telemetry-7dfcc797b6-z5rjk  9093
+            $  kubectl port-forward -n istio-system svc/istio-telemetry 15014
 
             ```
 
-            Navigate to [http://localhost:9093/metrics](http://localhost:9093/metrics)
+            Navigate to [http://localhost:15014/metrics](http://localhost:15014/metrics)
             <br/>
-            Do a search for `grpc_server_handled_total`
+            Do a search for `grpc_io_server_completed_rpcs`
 
           </script>
       </section>
@@ -88,11 +92,9 @@
             Should see something similar to this:
 
             ```
-            # HELP grpc_server_handled_total Total number of RPCs completed
-            # on the server, regardless of success or failure.
-            # TYPE grpc_server_handled_total counter
-            grpc_server_handled_total{grpc_code="Internal",grpc_method="Report",grpc_service="istio.mixer.v1.Mixer",grpc_type="unary"} 5
-            grpc_server_handled_total{grpc_code="OK",grpc_method="Check",grpc_service="istio.mixer.v1.Mixer",grpc_type="unary"} 49
+            # TYPE grpc_io_server_completed_rpcs counter
+            grpc_io_server_completed_rpcs{grpc_server_method="istio.mixer.v1.Mixer/Report",grpc_server_status="OK"} 35
+            # HELP grpc_io_server_received_bytes_per_rpc Distribution of received bytes per RPC, by method.
 
             ```
 
@@ -108,8 +110,7 @@
 
             First open the Mixer grpc port:
             ```
-            $  kubectl  port-forward -n istio-system \
-            istio-telemetry-7dfcc797b6-z5rjk  9091
+            $  kubectl port-forward -n istio-system svc/istio-telemetry 9091
             ```
 
             Let's use the `mixc` cli to send a report:

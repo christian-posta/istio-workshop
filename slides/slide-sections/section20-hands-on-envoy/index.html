@@ -23,6 +23,24 @@
                                 <small>I'm using <a href="https://github.com/kubernetes/minikube">minikube</a>/<a href="https://www.openshift.org/minishift/">minishift</a>. YMMV</small>
                             </section>
         
+                            <section data-markdown>
+                                <script type="text/template">
+                                    ### Minikube 
+
+                                    Need big enough cluster:
+
+                                    ```
+                                    minikube start --cpus 4 --memory=4096 --disk-size=30g --kubernetes-version=v1.13.2
+                                    ```
+
+                                    Can also consider hypervisor selection:
+
+                                    ```
+                                    --vm-driver=hyperkit 
+                                    ```
+
+                                </script>
+                            </section>
         
                             <section>
                                 <h3>Pull some images</h3>
