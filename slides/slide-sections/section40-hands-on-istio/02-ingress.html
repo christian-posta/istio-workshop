@@ -5,32 +5,60 @@
             We need to get traffic into our cluster. We'll use Istio Gateway to do this. Note, we'll be *upgrading* our installation of `istio`
 
             ```
-            ($BASE/istio/istio-release-1.0-20180710-09-15/)
-            $  helm upgrade --install --force \
-            istio install/kubernetes/helm/istio \
-            --values ../values-install-istio-gateway.yaml \
-            --namespace istio-system
+            ($BASE/istio/istio-1.1.5/)
+            $  helm template install/kubernetes/helm/istio \
+            --name istio \
+            --namespace istio-system \
+            --set gateways.enabled=true \
+            --set security.enabled=false \
+            --set global.mtls.enabled=false \
+            --set galley.enabled=false \
+            --set global.useMCP=false \
+            --set sidecarInjectorWebhook.enabled=false \
+            --set mixer.enabled=false \
+            --set mixer.policy.enabled=false \
+            --set mixer.telemetry.enabled=false \
+            --set prometheus.enabled=false \
+            --set grafana.enabled=false \
+            --set tracing.enabled=false \
+            --set kiali.enabled=false \
+            --set pilot.sidecar=false 
             ```
 
-            Note, we could also use the convenience scripts from the source code of this workshop:
 
-            ```
-            ($BASE/istio/)
-            $  ./helm-upgrade.sh istio-gateway
-            ```
 
         </script>
     </section>
+
+    <section data-markdown>
+      <script type="text/template">
+          ### Istio Gateway
+
+          Let's install this:
+
+          ```
+          ($BASE/istio/)
+          $  kubectl apply -f install/10-istio-minimal.yaml
+          ```
+
+        </script>
+      </section>
+
     <section data-markdown>
       <script type="text/template">
           ### We now have ingress gateway!
 
           ```
           $  kubectl get pods -n istio-system
-          NAME                              READY  STATUS   RESTARTS  AGE
-          istio-citadel-85fcc767fc-x57x4    1/1    Running  0         47m
-          istio-ingressgateway-59849784d6   1/1    Running  0         4s
-          istio-pilot-6db8d59464-xjl4v      2/2    Running  0         47m
+
+          istio-ingressgateway-5fbcf4488f-sn9hb   1/1     Running
+          istio-pilot-64dbff49fc-q8sjt            1/1     Running
+          ```
+
+          List the Istio services:
+
+          ```
+          $  kubectl get svc -n istio-system
           ```
 
       </script>
@@ -45,19 +73,23 @@
             apiVersion: v1
             kind: Service
             metadata:
-              creationTimestamp: 2018-07-12T13:59:25Z
+              annotations:
+                kubectl.kubernetes.io/last-applied-configuration: |
+                  {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"istio-ingressgateway","chart":"gateways","heritage":"Tiller","istio":"ingressgateway","release":"istio"},"name":"istio-ingressgateway","namespace":"istio-system"},"spec":{"ports":[{"name":"http2","nodePort":31380,"port":80,"targetPort":80},{"name":"https","nodePort":31390,"port":443},{"name":"tcp","nodePort":31400,"port":31400},{"name":"https-kiali","port":15029,"targetPort":15029},{"name":"https-prometheus","port":15030,"targetPort":15030},{"name":"https-grafana","port":15031,"targetPort":15031},{"name":"https-tracing","port":15032,"targetPort":15032},{"name":"tls","port":15443,"targetPort":15443},{"name":"status-port","port":15020,"targetPort":15020}],"selector":{"app":"istio-ingressgateway","istio":"ingressgateway","release":"istio"},"type":"LoadBalancer"}}
+              creationTimestamp: "2019-05-04T03:54:01Z"
               labels:
-                chart: gateways-1.0.0
+                app: istio-ingressgateway
+                chart: gateways
                 heritage: Tiller
                 istio: ingressgateway
-                release: istio-gateway
+                release: istio
               name: istio-ingressgateway
               namespace: istio-system
-              resourceVersion: "5683"
+              resourceVersion: "15901"
               selfLink: /api/v1/namespaces/istio-system/services/istio-ingressgateway
-              uid: c95a07fc-85db-11e8-a5be-aa7372e62731
+              uid: 40dd6cf3-6e20-11e9-8972-2a79e59ecc98
             spec:
-              clusterIP: 10.99.105.45
+              clusterIP: 10.100.51.0
               externalTrafficPolicy: Cluster
               ports:
               - name: http2
@@ -75,22 +107,45 @@
                 port: 31400
                 protocol: TCP
                 targetPort: 31400
-              - name: tcp-pilot-grpc-tls
-                nodePort: 30309
-                port: 15011
+              - name: https-kiali
+                nodePort: 31109
+                port: 15029
                 protocol: TCP
-                targetPort: 15011
-              - name: tcp-citadel-grpc-tls
-                nodePort: 32686
-                port: 8060
+                targetPort: 15029
+              - name: https-prometheus
+                nodePort: 32064
+                port: 15030
                 protocol: TCP
-                targetPort: 8060
+                targetPort: 15030
+              - name: https-grafana
+                nodePort: 31407
+                port: 15031
+                protocol: TCP
+                targetPort: 15031
+              - name: https-tracing
+                nodePort: 30188
+                port: 15032
+                protocol: TCP
+                targetPort: 15032
+              - name: tls
+                nodePort: 30159
+                port: 15443
+                protocol: TCP
+                targetPort: 15443
+              - name: status-port
+                nodePort: 32036
+                port: 15020
+                protocol: TCP
+                targetPort: 15020
               selector:
+                app: istio-ingressgateway
                 istio: ingressgateway
+                release: istio
               sessionAffinity: None
               type: LoadBalancer
             status:
               loadBalancer: {}
+            
 
             ```
         </script>
@@ -101,7 +156,7 @@
         ### Ingress is just a simple Istio proxy
 
         `istio-ingressgateway` is really just the Istio proxy that is
-        programmed by Envoy routes.
+        programmed by the Istio xDS and Envoy config.
 
       </script>
     </section>
@@ -115,21 +170,19 @@
         --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
         $  istioctl proxy-config listener \
         --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
-        Error: no listeners found
         $  istioctl proxy-config route \
         --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
-        Error: config dump has no route dump
         ```
       </script>
 
-      No listeners!
+      A single listener!
     </section>
 
     <section data-markdown>
       <script type="text/template">
         ### Let's define our Gateway's ports
 
-        Gateways define our L3/L4 surface that gets exposed to outside world. (See istio docs [for more on Gateways](https://preliminary.istio.io/docs/reference/config/istio.networking.v1alpha3/#Gateway))
+        Gateways define our L4 surface that gets exposed to outside world. (See istio docs [for more on Gateways](https://istio.io/docs/reference/config/networking/v1alpha3/gateway/))
 
         ```
         apiVersion: networking.istio.io/v1alpha3
@@ -214,16 +267,17 @@
 
       ```
       ($BASE/istio/)
-      $  istioctl create -f gateway/default-gateway.yaml 
+      $  kubectl create -f gateway/default-gateway.yaml 
       Created config gateway/istio-samples/default-gateway at revision 7457
       ```
 
-      Now we should have an listeners on our ingress-gateway
+      Now we should have another listener on our ingress-gateway
 
       ```
       $ istioctl proxy-config listener --namespace istio-system istio-ingressgateway-59849784d6-bxs7t  
-      ADDRESS     PORT     TYPE
-      0.0.0.0     80       HTTP
+      ADDRESS     PORT      TYPE
+      0.0.0.0     80        HTTP
+      0.0.0.0     15090     HTTP
       ```
 
       Woohoo! We can accept traffic from the outside world!
@@ -346,8 +400,8 @@
       that automatically supports LoadBalancer):
 
       ```
-      $  kubectl get svc/istio-ingressgateway -n istio-system -o yaml \
-      | grep -i nodeport | head -n 1 | awk '{ print $2 }'
+      $  kubectl get svc/istio-ingressgateway -n istio-system \
+      --output jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}'
 
       31380
       ```

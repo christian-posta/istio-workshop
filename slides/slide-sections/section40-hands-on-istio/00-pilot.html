@@ -6,7 +6,7 @@
 
             ```
             ($BASE/istio/istio-1.1.5/)
-            $  helm template $ISTIO_RELEASE/install/kubernetes/helm/istio \
+            $  helm template install/kubernetes/helm/istio \
             --name istio \
             --namespace istio-system \
             --set gateways.enabled=false \
@@ -25,15 +25,22 @@
             --set pilot.sidecar=false 
             ```
 
-            Note, we could also use the convenience config from this workshop:
-
-            ```
-            ($BASE/istio/)
-            $  cat install/00-istio-starter.yaml
-            ```
-
         </script>
     </section>
+    <section data-markdown>
+      <script type="text/template">
+        ### Installing Istio Pilot
+
+
+        Let's install from config for this workshop:
+
+        ```
+        ($BASE/istio/)
+        $  cat install/00-istio-starter.yaml
+        ```
+      </script>
+    </section>
+    
 
     <section data-markdown>
         <script type="text/template">
@@ -373,7 +380,7 @@ spec:
             Let's install it...
 
             ```
-            ($BASE/istio/istio-1.1.5/)
+            ($BASE/istio/)
             $  kubectl apply -f install/00-istio-starter.yaml
             ```
 
@@ -388,8 +395,7 @@ spec:
             ```
             $  kubectl get pod -n istio-system
 
-            NAME                           READY   STATUS    RESTARTS   AGE
-            istio-pilot-64dbff49fc-g7tx5   1/1     Running   0          44m
+            istio-pilot-64dbff49fc-g7tx5 1/1 Running
 
             ```
         </script>
