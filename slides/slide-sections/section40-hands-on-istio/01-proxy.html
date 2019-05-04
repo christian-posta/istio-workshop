@@ -39,6 +39,14 @@
             $  kubectl edit deploy httpbin
             ```
 
+            Hint, add capabilities to security context:
+            
+            ```
+            securityContext:
+              capabilities:
+                add: ["NET_ADMIN", "SYS_TIME"]
+            ```
+
             Note, these rules get set up as part of the init container, and the iptables rules
             [are here in the prep scripts](https://github.com/istio/istio/blob/master/tools/deb/istio-iptables.sh)
 
