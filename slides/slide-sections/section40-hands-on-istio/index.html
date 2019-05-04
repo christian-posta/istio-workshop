@@ -28,16 +28,17 @@
                   <script type="text/template">
                     ### Download the Istio distribution
         
-                    We'll be using a 1.0-snapshot of Istio.
+                    We'll be the latest Istio (1.1.5).
 
-                    Download from http://bit.ly/2L1kGau
+                    Download from https://github.com/istio/istio/releases
         
                     Example:
                     ```
                     ($BASE/istio/)
-                    $  curl -L -O https://storage.googleapis.com/istio-release-pipeline-data/daily-build/release-1.0-20180710-09-15/istio-release-1.0-20180710-09-15-osx.tar.gz
+                    $  curl -L -O https://github.com/istio/istio/releases/download/1.1.5/istio-1.1.5-osx.tar.gz
+                    $  tar -xzf istio-1.1.5-osx.tar.gz 
                     ```
-                    Don't actually do the installation yet. We will take a piece-by-piece approach.
+                    Don't actually do ANY installation yet. We will take a step-by-step, deep-dive approach.
         
                   </script>
                 </section>
@@ -55,22 +56,24 @@
 
                                     ```
                                     
-                                    $  cd istio-release-1.0-20180710-09-15
-                                    ($BASE/istio/istio-release-1.0-20180710-09-15/
+                                    $  cd istio-1.1.5
+                                    ($BASE/istio/istio-1.1.5)
                                     $  ls -l install/kubernetes/helm/istio/charts
         
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 galley
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 gateways
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 grafana
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 ingress
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 kiali
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 mixer
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 pilot
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 prometheus
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 security
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 servicegraph
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 sidecarInjectorWebhook
-                                    drwxr-xr-x@ 4 ceposta  staff   136B Jul 10 02:22 tracing
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 certmanager
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 galley
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 gateways
+                                    drwxr-xr-x  6 ceposta  staff  192 May  1 11:33 grafana
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 istiocoredns
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 kiali
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 mixer
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 nodeagent
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 pilot
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 prometheus
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 security
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 servicegraph
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 sidecarInjectorWebhook
+                                    drwxr-xr-x  5 ceposta  staff  160 May  1 11:33 tracing
                                     ```
                                 </script>
                             </section>
@@ -84,7 +87,7 @@
                                     Kubernetes:
         
                                     ```
-                                    ($BASE/istio/istio-release-1.0-20180710-09-15/)
+                                    ($BASE/istio/istio-1.1.5)
                                     $  kubectl create -f install/kubernetes/namespace.yaml
                                     ```
         
@@ -100,14 +103,13 @@
 
                             <section data-markdown>
                                 <script type="text/template">
-                                    ### Set up Helm (if you don't have it already)
-        
-                                    Kubernetes:
+                                    ### Verify you have Helm (optional)
         
                                     ```
-                                    ($BASE/istio/istio-release-1.0-20180710-09-15/)
-                                    $  kubectl create -f install/kubernetes/helm/helm-service-account.yaml
-                                    $  helm init --service-account tiller
+                                    ($BASE/istio/istio-1.1.5)
+                                    $  helm version
+                                    Client: &version.Version{SemVer:"v2.12.2", GitCommit:"7d2b0c73d734f6586ed222a567c5d103fed435be", GitTreeState:"clean"}
+Error: could not find tiller
                                     ```
 
         
