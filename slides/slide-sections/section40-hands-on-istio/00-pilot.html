@@ -5,17 +5,31 @@
             Let's take a look at installing Pilot. We'll use helm to cherry pick the Istio Pilot:
 
             ```
-            ($BASE/istio/istio-release-1.0-20180710-09-15/)
-            $  helm install install/kubernetes/helm/istio --debug \ 
-            --dry-run --values ../values-install-istio-pilot.yaml \
-            --namespace istio-system --name istio
+            ($BASE/istio/istio-1.1.5/)
+            $  helm template $ISTIO_RELEASE/install/kubernetes/helm/istio \
+            --name istio \
+            --namespace istio-system \
+            --set gateways.enabled=false \
+            --set security.enabled=false \
+            --set global.mtls.enabled=false \
+            --set galley.enabled=false \
+            --set global.useMCP=false \
+            --set sidecarInjectorWebhook.enabled=false \
+            --set mixer.enabled=false \
+            --set mixer.policy.enabled=false \
+            --set mixer.telemetry.enabled=false \
+            --set prometheus.enabled=false \
+            --set grafana.enabled=false \
+            --set tracing.enabled=false \
+            --set kiali.enabled=false \
+            --set pilot.sidecar=false 
             ```
 
-            Note, we could also use the convenience scripts from the source code of this workshop:
+            Note, we could also use the convenience config from this workshop:
 
             ```
             ($BASE/istio/)
-            $  ./helm-debug.sh istio-pilot
+            $  cat install/00-istio-starter.yaml
             ```
 
         </script>
@@ -26,14 +40,22 @@
             ### istio-pilot.yaml: Cluster Roles and bindings
 
             ```
-            apiVersion: rbac.authorization.k8s.io/v1beta1
+            apiVersion: rbac.authorization.k8s.io/v1
             kind: ClusterRole
             metadata:
               name: istio-pilot-istio-system
+              labels:
+                app: pilot
+                chart: pilot
+                heritage: Tiller
+                release: istio
             rules:
             - apiGroups: ["config.istio.io"]
               resources: ["*"]
               verbs: ["*"]
+            - apiGroups: ["rbac.istio.io"]
+              resources: ["*"]
+              verbs: ["get", "watch", "list"]
             - apiGroups: ["networking.istio.io"]
               resources: ["*"]
               verbs: ["*"]
@@ -44,42 +66,14 @@
               resources: ["customresourcedefinitions"]
               verbs: ["*"]
             - apiGroups: ["extensions"]
-              resources: ["thirdpartyresources", "thirdpartyresources.extensions", "ingresses", "ingresses/status"]
+              resources: ["ingresses", "ingresses/status"]
               verbs: ["*"]
             - apiGroups: [""]
               resources: ["configmaps"]
               verbs: ["create", "get", "list", "watch", "update"]
             - apiGroups: [""]
-              resources: ["endpoints", "pods", "services"]
+              resources: ["endpoints", "pods", "services", "namespaces", "nodes", "secrets"]
               verbs: ["get", "list", "watch"]
-            - apiGroups: [""]
-              resources: ["namespaces", "nodes", "secrets"]
-              verbs: ["get", "list", "watch"]
-            ```
-        </script>
-    </section>
-
-
-    <section data-markdown>
-        <script type="text/template">
-            ### istio-pilot.yaml: Custom Resource Definitions
-
-            ```
-            apiVersion: apiextensions.k8s.io/v1beta1
-            kind: CustomResourceDefinition
-            metadata:
-              name: virtualservices.networking.istio.io
-              labels:
-                app: istio-pilot
-            spec:
-              group: networking.istio.io
-              names:
-                kind: VirtualService
-                listKind: VirtualServiceList
-                plural: virtualservices
-                singular: virtualservice
-              scope: Namespaced
-              version: v1alpha3
             ```
         </script>
     </section>
@@ -188,25 +182,20 @@
               name: istio-pilot
               namespace: istio-system
               labels:
-                app: istio-pilot
-                chart: pilot-1.0.0
-                release: istio-pilot
+                app: pilot
+                chart: pilot
                 heritage: Tiller
+                release: istio
+                istio: pilot
             spec:
               ports:
-              - port: 15003
-                name: http-old-discovery # mTLS or non-mTLS depending on auth setting
-              - port: 15005
-                name: https-discovery # always mTLS
-              - port: 15007
-                name: http-discovery # always plain-text
               - port: 15010
                 name: grpc-xds # direct
               - port: 15011
                 name: https-xds # mTLS
               - port: 8080
                 name: http-legacy-discovery # direct
-              - port: 9093
+              - port: 15014
                 name: http-monitoring
               selector:
                 istio: pilot
@@ -223,13 +212,13 @@
         apiVersion: v1
         kind: ServiceAccount
         metadata:
-          name: istio-cleanup-old-ca-service-account
+          name: istio-pilot-service-account
           namespace: istio-system
           labels:
-            app: security
-            chart: security-1.0.0
+            app: pilot
+            chart: pilot
             heritage: Tiller
-            release: istio-pilot
+            release: istio
         ```
 
     </script>
@@ -241,151 +230,136 @@
         ### istio-pilot.yaml: Deployment
         ```
         apiVersion: extensions/v1beta1
-        kind: Deployment
-        metadata:
-          name: istio-pilot
-          namespace: istio-system
-          # TODO: default tempate doesn't have this, which one is right ?
-          labels:
-            app: istio-pilot
-            chart: pilot-1.0.0
-            release: istio-pilot
-            heritage: Tiller
-            istio: pilot
-          annotations:
-            checksum/config-volume: f8da08b6b8c170dde721efd680270b2901e750d4aa186ebb6c22bef5b78a43f9
-        spec:
-          replicas: 1
-          template:
-            metadata:
-              labels:
-                istio: pilot
-                app: pilot
-              annotations:
-                sidecar.istio.io/inject: "false"
-            spec:
-              serviceAccountName: istio-pilot-service-account
-              containers:
-                - name: discovery
-                  image: "docker.io/istionightly/pilot:nightly-master"
-                  imagePullPolicy: IfNotPresent
-                  args:
-                  - "discovery"
-                  ports:
-                  - containerPort: 8080
-                  - containerPort: 15010
-                  readinessProbe:
-                    httpGet:
-                      path: /v1/registration
-                      port: 8080
-                    initialDelaySeconds: 30
-                    periodSeconds: 30
-                    timeoutSeconds: 5
-                  env:
-                  - name: POD_NAME
-                    valueFrom:
-                      fieldRef:
-                        apiVersion: v1
-                        fieldPath: metadata.name
-                  - name: POD_NAMESPACE
-                    valueFrom:
-                      fieldRef:
-                        apiVersion: v1
-                        fieldPath: metadata.namespace
-                  - name: PILOT_THROTTLE
-                    value: "500"
-                  - name: PILOT_CACHE_SQUASH
-                    value: "5"
-                  resources:
-                    requests:
-                      cpu: 10m
-                    
-                  volumeMounts:
-                  - name: config-volume
-                    mountPath: /etc/istio/config
-                  - name: istio-certs
-                    mountPath: /etc/certs
-                    readOnly: true
-                - name: istio-proxy
-                  image: "docker.io/istionightly/proxyv2:nightly-master"
-                  imagePullPolicy: IfNotPresent
-                  ports:
-                  - containerPort: 15003
-                  - containerPort: 15005
-                  - containerPort: 15007
-                  - containerPort: 15011
-                  args:
-                  - proxy
-                  - --serviceCluster
-                  - istio-pilot
-                  - --templateFile
-                  - /etc/istio/proxy/envoy_pilot.yaml.tmpl
-                  - --controlPlaneAuthPolicy
-                  - NONE
-                  env:
-                  - name: POD_NAME
-                    valueFrom:
-                      fieldRef:
-                        apiVersion: v1
-                        fieldPath: metadata.name
-                  - name: POD_NAMESPACE
-                    valueFrom:
-                      fieldRef:
-                        apiVersion: v1
-                        fieldPath: metadata.namespace
-                  - name: INSTANCE_IP
-                    valueFrom:
-                      fieldRef:
-                        apiVersion: v1
-                        fieldPath: status.podIP
-                  resources:
-                    requests:
-                      cpu: 10m
-                    
-                  volumeMounts:
-                  - name: istio-certs
-                    mountPath: /etc/certs
-                    readOnly: true
-              volumes:
-              - name: config-volume
-                configMap:
-                  name: istio
-              - name: istio-certs
-                secret:
-                  secretName: istio.istio-pilot-service-account
-              affinity:      
-                nodeAffinity:
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      - key: beta.kubernetes.io/arch
-                        operator: In
-                        values:
-                        - amd64
-                        - ppc64le
-                        - s390x
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                  - weight: 2
-                    preference:
-                      matchExpressions:
-                      - key: beta.kubernetes.io/arch
-                        operator: In
-                        values:
-                        - amd64
-                  - weight: 2
-                    preference:
-                      matchExpressions:
-                      - key: beta.kubernetes.io/arch
-                        operator: In
-                        values:
-                        - ppc64le
-                  - weight: 2
-                    preference:
-                      matchExpressions:
-                      - key: beta.kubernetes.io/arch
-                        operator: In
-                        values:
-                        - s390x
+kind: Deployment
+metadata:
+  name: istio-pilot
+  namespace: istio-system
+  # TODO: default template doesn't have this, which one is right ?
+  labels:
+    app: pilot
+    chart: pilot
+    heritage: Tiller
+    release: istio
+    istio: pilot
+  annotations:
+    checksum/config-volume: f8da08b6b8c170dde721efd680270b2901e750d4aa186ebb6c22bef5b78a43f9
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      istio: pilot
+  template:
+    metadata:
+      labels:
+        app: pilot
+        chart: pilot
+        heritage: Tiller
+        release: istio
+        istio: pilot
+      annotations:
+        sidecar.istio.io/inject: "false"
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+    spec:
+      serviceAccountName: istio-pilot-service-account
+      containers:
+        - name: discovery
+          image: "docker.io/istio/pilot:1.1.2"
+          imagePullPolicy: IfNotPresent
+          args:
+          - "discovery"
+          - --monitoringAddr=:15014
+          - --domain
+          - cluster.local
+          - --secureGrpcAddr
+          - ""
+          - --keepaliveMaxServerConnectionAge
+          - "30m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 15010
+          - containerPort: 15011
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 5
+          env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: GODEBUG
+            value: "gctrace=1"
+          - name: PILOT_PUSH_THROTTLE
+            value: "100"
+          - name: PILOT_TRACE_SAMPLING
+            value: "1"
+          - name: PILOT_DISABLE_XDS_MARSHALING_TO_ANY
+            value: "1"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2048Mi
+            
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/istio/config
+          - name: istio-certs
+            mountPath: /etc/certs
+            readOnly: true
+      volumes:
+      - name: config-volume
+        configMap:
+          name: istio
+      - name: istio-certs
+        secret:
+          secretName: istio.istio-pilot-service-account
+          optional: true
+      affinity:      
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 2
+            preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+          - weight: 2
+            preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - ppc64le
+          - weight: 2
+            preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - s390x
+
         ```
 
     </script>
@@ -399,17 +373,8 @@
             Let's install it...
 
             ```
-            ($BASE/istio/istio-release-1.0-20180710-09-15/)
-            $  helm install --replace install/kubernetes/helm/istio \
-            --values ../values-install-istio-pilot.yaml \
-            --namespace istio-system --name istio
-            ```
-
-            Note, we could also use the convenience scripts from the source code of this workshop:
-
-            ```
-            ($BASE/istio/)
-            $  ./helm-install.sh istio-pilot
+            ($BASE/istio/istio-1.1.5/)
+            $  kubectl apply -f install/00-istio-starter.yaml
             ```
 
         </script>
@@ -421,11 +386,10 @@
             ### We have Pilot!
 
             ```
-            $  kubectl get pods -n istio-system
+            $  kubectl get pod -n istio-system
 
-            NAME                             READY     STATUS    RESTARTS   AGE
-            istio-citadel-85fcc767fc-9bxc9   1/1       Running   0          10m
-            istio-pilot-6db8d59464-n7mwh     2/2       Running   0          10m
+            NAME                           READY   STATUS    RESTARTS   AGE
+            istio-pilot-64dbff49fc-g7tx5   1/1     Running   0          44m
 
             ```
         </script>
@@ -438,7 +402,7 @@
             ```
             $  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
             -n istio-system --command \
-            -- curl -vvvv 'http://istio-pilot.istio-system:15003/v1/registration'
+            -- curl -vvvv 'http://istio-pilot.istio-system:8080/v1/registration'
             ```
 
             Returns services and service endpoints
@@ -456,15 +420,28 @@
         </script>
     </section>
 
+    <section data-markdown>
+      <script type="text/template">
+          ### Installing Istio CRD
+
+          ```
+          ($BASE/istio/)
+          $  kubectl apply -f install/crds.yaml
+          ```
+
+
+      </script>
+  </section>
+
 
     <section data-markdown>
         <script type="text/template">
-            ### Let's take a look at a service
+            ### Let's take a install a service
 
-            Navigate to `$BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin`
+            Navigate to `$BASE/istio/istio-1.1.5/samples/httpbin`
 
             ```
-            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
+            ($BASE/istio/istio-1.1.5/samples/httpbin/)
             $  cat httpbin.yaml
 
             apiVersion: v1
@@ -477,8 +454,9 @@
               ports:
               - name: http
                 port: 8000
-                selector:
-                  app: httpbin
+                targetPort: 80
+              selector:
+                app: httpbin
             ---
             apiVersion: extensions/v1beta1
             kind: Deployment
@@ -489,14 +467,15 @@
               template:
                 metadata:
                   labels:
-                  app: httpbin
-              spec:
-                containers:
-                - image: docker.io/citizenstig/httpbin
-                  imagePullPolicy: IfNotPresent
-                  name: httpbin
-                  ports:
-                  - containerPort: 8000
+                    app: httpbin
+                    version: v1
+                spec:
+                  containers:
+                  - image: docker.io/kennethreitz/httpbin
+                    imagePullPolicy: IfNotPresent
+                    name: httpbin
+                    ports:
+                    - containerPort: 80
             ```
 
         </script>
@@ -508,7 +487,7 @@
             ### Let's decorate our service with sidecar
 
             ```
-            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
+            ($BASE/istio/istio-1.1.5/samples/httpbin/)
             $	 ../../bin/istioctl kube-inject -f httpbin.yaml
 
             apiVersion: extensions/v1beta1
@@ -673,7 +652,7 @@
             Let's deploy the httpbin service with Istio enabled!
 
             ```
-            ($BASE/istio/istio-release-1.0-20180710-09-15/samples/httpbin/)
+            ($BASE/istio/istio-1.1.5/samples/httpbin/)
             $  kubectl create -f <(istioctl kube-inject -f httpbin.yaml)
             ```
 
@@ -694,13 +673,13 @@
             ```
             $  kubectl run -i --rm --restart=Never dummy --image=tutum/curl:alpine \
             -n istio-system --command -- \
-            curl -s 'http://istio-pilot.istio-system:15003/v1/registration/' 
+            curl -s 'http://istio-pilot.istio-system:8080/v1/registration/' 
 
             {
               "hosts": [
                 {
                   "ip_address": "172.17.0.3",
-                  "port": 8000
+                  "port": 80
                 }
               ]
             }
