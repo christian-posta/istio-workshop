@@ -146,7 +146,7 @@
 
             ```
             ($BASE/istio/example)
-            $  kubectl create -f istio/recommendation-service-all-v1.yml -n istio-samples
+            $  kubectl apply -f istio/recommendation-service-all-v1.yml -n istio-samples
             Created config virtual-service/istio-samples/recommendation at revision 29717
             Created config destination-rule/istio-samples/recommendation at revision 29718
             ```
@@ -162,7 +162,7 @@
 
             ```
             ($BASE/istio/example)
-            $  kubectl replace -f istio/recommendation-service-v1-v2-70-30.yml 
+            $  kubectl apply -f istio/recommendation-service-v1-v2-70-30.yml 
             Updated config virtual-service/istio-samples/recommendation to revision 30024
 
             ```
@@ -220,7 +220,7 @@
 
             ```
             ($BASE/istio/example)
-            $  kubectl replace -f istio/recommendation-service-fault.yml -n istio-samples
+            $  kubectl apply -f istio/recommendation-service-fault.yml -n istio-samples
             ```
 
           </script>
@@ -232,7 +232,9 @@
             If you check the logs for the `preference` service, you will see occasional `502` errors:
 
             ```
-            kubectl logs -f <preference-pod-name>
+            kubectl logs -f -c preference <preference-pod-name>
+
+            org.springframework.web.client.HttpServerErrorException: 502 Bad Gateway                                                                                                                                                                                                                                     
             ```          
 
           </script>
@@ -282,7 +284,8 @@
             Let's deploy a new version of recommendation v2 service that introduces a delay:
 
             ```
-            $  kubectl create -f kube/recommendation-v2-delay-deployment.yml -n istio-samples
+            $  kubectl apply -f <(istioctl kube-inject -f kube/recommendation-v2-delay-deployment.yml)\
+             -n istio-samples
             ```
             
             You should see periodically the client polling hang for up to 3s
@@ -327,19 +330,26 @@
 
             ```
             ($BASE/istio/example)
-            $  istioctl replace -f istio/recommendation-service-timeout.yml -n istio-samples
+            $  kubectl apply -f istio/recommendation-service-timeout.yml -n istio-samples
             ```
             Now we should see calls complete in 1s or less, but some are getting timed out by Istio:
 
-            ```
-            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 734
-            customer => preference => recommendation v1 from '5fd66c7ffb-sjjgg': 735
-            customer => 503 preference => 504 upstream request timeout
-            customer => preference => recommendation v2 from 'c4ccf7fb6-j5lth': 113
-            ```
-
           </script>
-        </section>             
+        </section>   
+        
+        <section data-markdown>
+            <script type="text/template">
+              ### Automatic retries strike again!
+              If you check the logs for the `preference` service, you will see occasional `502` errors:
+  
+              ```
+              kubectl logs -f -c preference <preference-pod-name>
+  
+              org.springframework.web.client.HttpServerErrorException: 504 Gateway Timeout                                                                                                                                                                                                                                      
+              ```          
+  
+            </script>
+          </section>           
 
 
         <section data-markdown>
@@ -383,23 +393,10 @@
 
             ```
             ($BASE/istio/example)
-            $  kubectl replace -f istio/recommendation-destinationrule-cb.yml -n istio-samples
+            $  kubectl apply -f istio/recommendation-destinationrule-cb.yml -n istio-samples
             ```
             We should see fewer of those 504/timeouts because we eject that bad-behaving host for a period of time.
-            But they still do show up periodically. What can we do?
+            When they show back up, Istio uses automatic retries to work around them.
           </script>
         </section>        
-
-        <section data-markdown>
-          <script type="text/template">
-            ### Retry!
-
-
-            ```
-            ($BASE/istio/example)
-            $  kubectl replace -f istio/recommendation-service-retry.yml -n istio-samples
-            ```
-            We should see fewer of those 504/timeouts because we eject that bad-behaving host for a period of time.
-            But they still do show up periodically. What can we do?
-          </script>
-        </section>           
+  

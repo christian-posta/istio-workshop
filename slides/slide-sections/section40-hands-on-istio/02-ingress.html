@@ -378,7 +378,7 @@
 
       ```
       ($BASE/istio/)
-      $  istioctl create -f virtualservices/httpbin.yaml 
+      $  kubectl create -f virtualservices/httpbin.yaml 
       Created config virtual-service/istio-samples/httpbin at revision 9999
       ```
 
@@ -394,7 +394,7 @@
 
   <section data-markdown>
     <script type="text/template">
-      ### Calling httpbin
+      ### Calling httpbin through ingress-gateway
 
       We need to find the NodePort for our LoadBalancer (if it's not on a cloud
       that automatically supports LoadBalancer):

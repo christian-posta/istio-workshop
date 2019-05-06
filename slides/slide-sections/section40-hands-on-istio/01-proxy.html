@@ -33,6 +33,15 @@
             (proxy)$  iptables -t nat -L
             ```
 
+            If this command doesn't work, see next slide.
+
+        </script>
+    </section>
+
+    <section data-markdown>
+        <script type="text/template">
+            ### Istio proxy    
+
             Change to give privilege to this pod just for this exercise:
 
             ```
@@ -44,15 +53,13 @@
             ```
             securityContext:
               capabilities:
-                add: ["NET_ADMIN", "SYS_TIME"]
+                add: ["NET_ADMIN"]
             ```
 
             Note, these rules get set up as part of the init container, and the iptables rules
-            [are here in the prep scripts](https://github.com/istio/istio/blob/master/tools/deb/istio-iptables.sh)
-
+            [are here in the prep scripts](https://github.com/istio/istio/blob/master/tools/packaging/common/istio-iptables.sh)            
         </script>
     </section>
-
 
     <section data-markdown>
         <script type="text/template">
@@ -67,6 +74,7 @@
             (proxy)$  curl localhost:15000/routes
             (proxy)$  curl localhost:15000/clusters
             (proxy)$  curl localhost:15000/server_info
+            (proxy)$  curl localhost:15000/config_dump
             ```
 
 
