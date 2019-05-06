@@ -924,10 +924,6 @@ spec:
             value: "1"
           - name: PILOT_DISABLE_XDS_MARSHALING_TO_ANY
             value: "1"
-          resources:
-            requests:
-              cpu: 500m
-              memory: 2048Mi
             
           volumeMounts:
           - name: config-volume

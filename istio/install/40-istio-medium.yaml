@@ -13995,13 +13995,6 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: status.podIP
-          resources:
-            limits:
-              cpu: 2000m
-              memory: 128Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
             
           volumeMounts:
           - name: istio-certs

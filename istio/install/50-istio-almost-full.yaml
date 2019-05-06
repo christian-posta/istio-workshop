@@ -2048,13 +2048,6 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: status.podIP
-        resources:
-          limits:
-            cpu: 2000m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
           
         volumeMounts:
         - name: istio-certs
@@ -2169,13 +2162,6 @@ spec:
           value: "gctrace=1"
         - name: GOMAXPROCS
           value: "6"
-        resources:
-          limits:
-            cpu: 4800m
-            memory: 4G
-          requests:
-            cpu: 1000m
-            memory: 1G
           
         volumeMounts:
         - name: telemetry-adapter-secret
@@ -2224,13 +2210,6 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: status.podIP
-        resources:
-          limits:
-            cpu: 2000m
-            memory: 128Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
           
         volumeMounts:
         - name: istio-certs
@@ -2365,13 +2344,6 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: status.podIP
-          resources:
-            limits:
-              cpu: 2000m
-              memory: 128Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
             
           volumeMounts:
           - name: istio-certs

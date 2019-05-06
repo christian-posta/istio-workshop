@@ -14,9 +14,9 @@ spec:
     - destination:
         host: recommendation
         subset: version-v2
-      weight: 30
+      weight: 30            
     fault:
       abort:
         percent: 20
-        httpStatus: 503 
+        httpStatus: 502
 

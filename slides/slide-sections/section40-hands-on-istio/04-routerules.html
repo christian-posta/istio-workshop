@@ -25,8 +25,8 @@
 
             ```
             ($BASE/istio/example)
-            $  istioctl delete virtualservice httpbin -n istio-samples
-            $  istioctl create -f istio/customer.yaml -n istio-samples
+            $  kubectl delete virtualservice httpbin -n istio-samples
+            $  kubectl create -f istio/customer.yaml -n istio-samples
             ```
 
           </script>
@@ -146,7 +146,7 @@
 
             ```
             ($BASE/istio/example)
-            $  istioctl create -f istio/recommendation-service-all-v1.yml -n istio-samples
+            $  kubectl create -f istio/recommendation-service-all-v1.yml -n istio-samples
             Created config virtual-service/istio-samples/recommendation at revision 29717
             Created config destination-rule/istio-samples/recommendation at revision 29718
             ```
@@ -162,7 +162,7 @@
 
             ```
             ($BASE/istio/example)
-            $  istioctl replace -f istio/recommendation-service-v1-v2-70-30.yml 
+            $  kubectl replace -f istio/recommendation-service-v1-v2-70-30.yml 
             Updated config virtual-service/istio-samples/recommendation to revision 30024
 
             ```
@@ -182,7 +182,7 @@
           <script type="text/template">
             ### Fault injection
 
-            Let's inject `503` errors every once in a while when calling `recommendation` to simulate network failures
+            Let's inject `502` errors every once in a while when calling `recommendation` to simulate network failures
 
             ```
             apiVersion: networking.istio.io/v1alpha3
@@ -205,7 +205,7 @@
                 fault:
                   abort:
                     percent: 20
-                    httpStatus: 503 
+                    httpStatus: 502 
                         
             ```
 
@@ -220,17 +220,38 @@
 
             ```
             ($BASE/istio/example)
-            $  istioctl replace -f istio/recommendation-service-fault.yml -n istio-samples
+            $  kubectl replace -f istio/recommendation-service-fault.yml -n istio-samples
             ```
 
           </script>
-        </section>        
+        </section>    
 
         <section data-markdown>
           <script type="text/template">
-            ### Retry
+            ### Automatic retries
+            If you check the logs for the `preference` service, you will see occasional `502` errors:
 
-            On network issues, let's just retry the request. We'll use Istio to implement automatic retries:
+            ```
+            kubectl logs -f <preference-pod-name>
+            ```          
+
+          </script>
+        </section>                
+
+        <section data-markdown>
+          <script type="text/template">
+            ### Automatic retries
+            We see that the call loop does not get interrupted because of built in automatic retries.
+
+            Exercise for the reader: pull up the proxy config for the `preference` service and find the `retry_policy`
+
+          </script>
+        </section>                
+        <section data-markdown>
+          <script type="text/template">
+            ### Explicit Retry
+
+            We can specify exactly what to retry and how many:
 
             ```
             apiVersion: networking.istio.io/v1alpha3
@@ -252,35 +273,7 @@
 
           </script>
         </section>
-
-        <section data-markdown>
-          <script type="text/template">
-            ### Retry
-
-            ```
-            ($BASE/istio/example)
-            $  istioctl create -f istio/preference-service-retry.yml -n istio-samples
-            ```
-
-            We should see traffic smooth out with successes.
-
-          </script>
-        </section>     
-
-        <section data-markdown>
-          <script type="text/template">
-            ### Retry cleanup
-
-            ```
-            ($BASE/istio/example)
-            $  istioctl delete virtualservice preference -n istio-samples
-            $  istioctl replace -f istio/recommendation-service-v1-v2-70-30.yml -n istio-samples
-            ```
-
-            We should see traffic smooth out with successes.
-
-          </script>
-        </section>             
+          
 
         <section data-markdown>
           <script type="text/template">
@@ -390,7 +383,7 @@
 
             ```
             ($BASE/istio/example)
-            $  istioctl replace -f istio/recommendation-destinationrule-cb.yml -n istio-samples
+            $  kubectl replace -f istio/recommendation-destinationrule-cb.yml -n istio-samples
             ```
             We should see fewer of those 504/timeouts because we eject that bad-behaving host for a period of time.
             But they still do show up periodically. What can we do?
@@ -404,7 +397,7 @@
 
             ```
             ($BASE/istio/example)
-            $  istioctl replace -f istio/recommendation-service-retry.yml -n istio-samples
+            $  kubectl replace -f istio/recommendation-service-retry.yml -n istio-samples
             ```
             We should see fewer of those 504/timeouts because we eject that bad-behaving host for a period of time.
             But they still do show up periodically. What can we do?
