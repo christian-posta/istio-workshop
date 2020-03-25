@@ -1,0 +1,5 @@
+spec:
+  containers:
+    - name: istio-proxy
+      securityContext:
+        readOnlyRootFilesystem: true

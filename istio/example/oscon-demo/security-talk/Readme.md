@@ -19,3 +19,7 @@ kubectl run -i --rm --restart=Never tokenizer --image=tutum/curl --command -- cu
 
 
 Make sure the at least first create a realm (this is a manual step)
+
+
+         securityContext:
+188           readOnlyRootFilesystem: false

@@ -27,7 +27,7 @@ desc "Let's add a new policy on customer to require a JWT auth token"
 run "cat $(relative istio/customer-jwt-policy-keycloak.yaml)"
 
 desc "Let's create this policy"
-run "kubectl create -f $(relative istio/customer-jwt-policy-keycloak.yaml)"
+run "kubectl apply -f $(relative istio/customer-jwt-policy-keycloak.yaml)"
 
 desc "We should wait a few moments for the changes to propagate"
 read -s
@@ -39,7 +39,7 @@ desc "Ouch! we got denied!"
 read -s 
 desc "Let's call with a JWT token"
 desc "We'll ask keycloak for a token:"
-TOKEN=$(kubectl run -i --rm --restart=Never tokenizer --image=tutum/curl --command -- curl -s -X POST 'http://keycloak.istio-samples:8080/auth/realms/istio/protocol/openid-connect/token' -H "Content-Type: application/x-www-form-urlencoded" -d 'username=demo&password=demo&grant_type=password&client_id=httpbin'  | jq .access_token | sed 's/\"//g')
+TOKEN=$(kubectl run -i --rm --restart=Never tokenizer --image=tutum/curl --command -- curl -s -X POST 'http://keycloak.default:8080/auth/realms/istio/protocol/openid-connect/token' -H "Content-Type: application/x-www-form-urlencoded" -d 'username=demo&password=demo&grant_type=password&client_id=httpbin'  | jq .access_token | sed 's/\"//g')
 echo $TOKEN
 
 read -s

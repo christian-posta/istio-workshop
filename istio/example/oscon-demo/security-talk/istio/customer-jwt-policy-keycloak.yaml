@@ -7,8 +7,9 @@ spec:
   - name: customer
   peers:
   - mtls:
+      mode: STRICT
   origins:
   - jwt:
-      issuer: http://keycloak.istio-samples:8080/auth/realms/istio
-      jwksUri: http://keycloak.istio-samples:8080/auth/realms/istio/protocol/openid-connect/certs
+      issuer: http://keycloak.default:8080/auth/realms/istio
+      jwksUri: http://keycloak.default:8080/auth/realms/istio/protocol/openid-connect/certs
   principalBinding: USE_ORIGIN
